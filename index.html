@@ -17,25 +17,21 @@
         <section class="atlas reveal" id="atlas">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">China Photo Atlas</p>
-              <h2>中国行政区摄影地图</h2>
-            </div>
-            <div class="map-toolbar" aria-label="地图操作">
-              <button class="map-control" id="zoomOutButton" aria-label="缩小">-</button>
-              <button class="map-control" id="zoomInButton" aria-label="放大">+</button>
-              <button class="map-control map-control-wide" id="resetViewButton">重置视图</button>
-              <button class="map-control map-control-wide" id="backButton">返回上一级</button>
+              <h2>Alan's Photography Blog</h2>
             </div>
           </div>
 
           <div class="atlas-layout">
             <div class="map-stage">
-              <div class="map-stage-overlay">
-                <span>真实行政区边界</span>
-                <span>点击区域继续下钻</span>
-                <span>滚轮或按钮缩放</span>
+              <div class="map-toolbar map-toolbar-top" aria-label="地图导航">
+                <button class="map-control map-control-wide" id="backButton">返回上一级</button>
+                <button class="map-control map-control-wide" id="resetViewButton">重置地图</button>
               </div>
               <div class="map-status" id="mapStatus">正在加载全国行政区数据…</div>
+              <div class="map-toolbar map-toolbar-zoom" aria-label="地图缩放">
+                <button class="map-control map-control-icon" id="zoomOutButton" aria-label="缩小">-</button>
+                <button class="map-control map-control-icon" id="zoomInButton" aria-label="放大">+</button>
+              </div>
               <div class="real-map" id="chinaMap" aria-label="中国行政区摄影地图"></div>
             </div>
 
@@ -43,18 +39,13 @@
               <div class="breadcrumb" id="breadcrumb"></div>
 
               <div class="region-panel-header">
-                <p class="eyebrow" id="areaLevel">全国视图</p>
                 <h3 id="areaTitle">中国</h3>
-                <p class="region-meta" id="areaMeta">行政区代码 100000</p>
-                <p class="region-description" id="areaDescription">
-                  点击地图进入省级，再继续点击城市或区县。你可以把照片绑定到任意行政区代码上，
-                  让作品按真实区域组织，而不是手工摆点。
-                </p>
               </div>
 
-              <div class="region-stats" id="areaStats"></div>
-              <div class="region-hint" id="areaHint"></div>
-              <div class="region-gallery" id="regionGallery"></div>
+              <div class="region-panel-body">
+                <div class="region-gallery" id="regionGallery"></div>
+                <nav class="region-timeline" id="regionTimeline" aria-label="相册快速索引" hidden></nav>
+              </div>
             </aside>
           </div>
         </section>
@@ -68,12 +59,14 @@
         <img class="lightbox-image" src="" alt="" />
         <div class="lightbox-copy">
           <p class="lightbox-meta"></p>
+          <p class="lightbox-gear"></p>
           <h3 class="lightbox-title"></h3>
         </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="./data/photo-catalog.js"></script>
     <script src="./script.js"></script>
   </body>
 </html>
