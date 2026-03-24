@@ -63,6 +63,10 @@ let storyTrackMotionFrame = 0;
 let storyTrackCurrentOffset = 0;
 let storyTrackTargetOffset = 0;
 let lastStoryScrollY = window.scrollY || 0;
+const themeMediaQuery =
+  typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
 const STORY_TRACK_REPEATS = 5;
 
 const STORY_ROW_SETTINGS = [
@@ -126,6 +130,41 @@ const STORY_COVER_SOURCES = [
 ];
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const isDarkModePreferred = () => Boolean(themeMediaQuery?.matches);
+
+const getMapThemePalette = () =>
+  isDarkModePreferred()
+    ? {
+        tooltipText: "#c9d1d9",
+        visualMapText: "#8b949e",
+        visualMapRange: ["#11161d", "#1b2d46", "#2a4f7f"],
+        labelColor: "#c9d1d9",
+        areaColor: "#161b22",
+        borderColor: "rgba(48, 54, 61, 0.98)",
+        shadowColor: "rgba(2, 8, 13, 0.32)",
+        emphasisLabelColor: "#0d1117",
+        emphasisAreaColor: "#f0f6fc",
+        emphasisBorderColor: "#ffffff",
+        selectAreaColor: "#ffffff",
+        selectBorderColor: "#f0f6fc",
+        selectLabelColor: "#0d1117",
+      }
+    : {
+        tooltipText: "#13212b",
+        visualMapText: "#607181",
+        visualMapRange: ["#dbe7ec", "#89a7b1", "#35586a"],
+        labelColor: "#20333f",
+        areaColor: "#dbe7ec",
+        borderColor: "#ffffff",
+        shadowColor: "rgba(19, 33, 43, 0.08)",
+        emphasisLabelColor: "#ffffff",
+        emphasisAreaColor: "#cf6f43",
+        emphasisBorderColor: "#fff6ed",
+        selectAreaColor: "#8e4a2e",
+        selectBorderColor: "#fff6ed",
+        selectLabelColor: "#ffffff",
+      };
 
 const getAreaLevelRank = (level) => AREA_LEVEL_ORDER[level] ?? 0;
 
@@ -1411,12 +1450,18 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
   const values = seriesData.map((item) => Number(item.value) || 0);
   const maxValue = Math.max(...values, 0);
   const mapLayout = getMapLayout(area);
+  const palette = getMapThemePalette();
 
   appState.chart.setOption(
     {
       backgroundColor: "transparent",
       tooltip: {
         trigger: "item",
+        backgroundColor: isDarkModePreferred() ? "rgba(11, 18, 24, 0.94)" : "rgba(255, 255, 255, 0.96)",
+        borderColor: isDarkModePreferred() ? "rgba(143, 165, 180, 0.2)" : "rgba(19, 33, 43, 0.08)",
+        textStyle: {
+          color: palette.tooltipText,
+        },
         formatter: ({ name, value }) => `${name}<br/>照片数量：${Number(value) || 0} 张`,
       },
       visualMap: {
@@ -1429,10 +1474,10 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
         text: ["", ""],
         showLabel: false,
         textStyle: {
-          color: "#607181",
+          color: palette.visualMapText,
         },
         inRange: {
-          color: ["#dbe7ec", "#89a7b1", "#35586a"],
+          color: palette.visualMapRange,
         },
       },
       series: [
@@ -1455,33 +1500,33 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
           },
           label: {
             show: appState.currentArea.level !== "country",
-            color: "#20333f",
+            color: palette.labelColor,
             fontSize: appState.currentArea.level === "district" ? 10 : 11,
           },
           itemStyle: {
-            areaColor: "#dbe7ec",
-            borderColor: "#ffffff",
+            areaColor: palette.areaColor,
+            borderColor: palette.borderColor,
             borderWidth: 1.2,
-            shadowColor: "rgba(19, 33, 43, 0.08)",
+            shadowColor: palette.shadowColor,
             shadowBlur: 10,
           },
           emphasis: {
             label: {
-              color: "#ffffff",
+              color: palette.emphasisLabelColor,
             },
             itemStyle: {
-              areaColor: "#cf6f43",
-              borderColor: "#fff6ed",
+              areaColor: palette.emphasisAreaColor,
+              borderColor: palette.emphasisBorderColor,
               borderWidth: 1.4,
             },
           },
           select: {
             itemStyle: {
-              areaColor: "#8e4a2e",
-              borderColor: "#fff6ed",
+              areaColor: palette.selectAreaColor,
+              borderColor: palette.selectBorderColor,
             },
             label: {
-              color: "#ffffff",
+              color: palette.selectLabelColor,
             },
           },
           data: seriesData,
@@ -1553,6 +1598,7 @@ const loadArea = async (area, options = {}) => {
 
     appState.currentArea = area;
     appState.features = features;
+    appState.currentMapName = mapName;
     appState.zoom = 1.05;
 
     syncStackForArea(area, options);
@@ -1633,6 +1679,23 @@ const setupChart = () => {
     });
 
     chartResizeObserver.observe(mapStageNode);
+  }
+
+  if (themeMediaQuery) {
+    const syncTheme = () => {
+      if (!appState.chart || !appState.currentMapName || !appState.features.length) {
+        return;
+      }
+
+      updateChart(appState.currentMapName, appState.features, appState.currentArea);
+      scheduleChartResize();
+    };
+
+    if (typeof themeMediaQuery.addEventListener === "function") {
+      themeMediaQuery.addEventListener("change", syncTheme);
+    } else if (typeof themeMediaQuery.addListener === "function") {
+      themeMediaQuery.addListener(syncTheme);
+    }
   }
 };
 
