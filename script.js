@@ -29,6 +29,9 @@ const regionPanelNode = document.querySelector(".region-panel");
 const regionPanelBodyNode = document.querySelector(".region-panel-body");
 const regionGalleryNode = document.querySelector("#regionGallery");
 const regionTimelineNode = document.querySelector("#regionTimeline");
+const tagFilterNode = document.querySelector("#tagFilter");
+const tagSummaryNode = document.querySelector("#tagSummary");
+const tagAtlasGalleryNode = document.querySelector("#tagAtlasGallery");
 
 const zoomInButton = document.querySelector("#zoomInButton");
 const zoomOutButton = document.querySelector("#zoomOutButton");
@@ -36,10 +39,11 @@ const resetViewButton = document.querySelector("#resetViewButton");
 const backButton = document.querySelector("#backButton");
 
 const lightbox = document.querySelector(".lightbox");
+const lightboxDialog = document.querySelector(".lightbox-dialog");
 const lightboxImage = document.querySelector(".lightbox-image");
-const lightboxTitle = document.querySelector(".lightbox-title");
 const lightboxMeta = document.querySelector(".lightbox-meta");
 const lightboxGear = document.querySelector(".lightbox-gear");
+const lightboxTagRail = document.querySelector(".lightbox-photo-tags");
 const lightboxCloseButtons = document.querySelectorAll(
   ".lightbox-backdrop, .lightbox-close"
 );
@@ -52,6 +56,12 @@ const appState = {
   featureMap: new Map(),
   features: [],
   timelineObserver: null,
+  tagAtlasAnimationToken: 0,
+  tagCategoryIndicatorLayout: null,
+  tagFilterResizeToken: 0,
+  tagCategoryHoverEnabled: true,
+  selectedTagCategory: "",
+  selectedTag: "",
   zoom: 1.05,
 };
 
@@ -59,6 +69,7 @@ const geoJSONCache = new Map();
 const albumPhotoCountCache = new Map();
 const recentAlbumsCache = new Map();
 let pendingChartResizeFrame = 0;
+let pendingAlbumLayoutFrame = 0;
 let storyTrackMotionFrame = 0;
 let storyTrackCurrentOffset = 0;
 let storyTrackTargetOffset = 0;
@@ -75,6 +86,28 @@ const STORY_ROW_SETTINGS = [
   { speed: -1.08, lift: -6 },
   { speed: 0.84, lift: 28 },
   { speed: -0.96, lift: 8 },
+];
+const TAG_CATEGORY_GROUPS = [
+  {
+    name: "人文摄影",
+    tags: ["人物", "人群", "街景", "胡同", "古镇", "故居", "乡村", "街区"],
+  },
+  {
+    name: "风光摄影",
+    tags: ["山景", "水景", "山水", "海边", "沙滩", "江景", "湖景", "日落", "自然", "蓝天"],
+  },
+  {
+    name: "城市建筑",
+    tags: ["城市夜景", "城市", "高楼", "建筑", "地标建筑", "古建", "寺庙", "城楼", "石窟", "石景", "桥", "门窗", "屋檐", "台阶", "场馆"],
+  },
+  {
+    name: "花卉植物",
+    tags: ["花卉", "郁金香", "树木", "树叶", "枝叶", "绿植", "草地", "公园", "园林"],
+  },
+  {
+    name: "现场纪实",
+    tags: ["演唱会", "舞台", "网球", "比赛", "运动", "球拍", "烟花"],
+  },
 ];
 const STORY_COVER_SOURCES = [
   "./assets/photos/072d124aae166ff8880594b269429815.jpg",
@@ -176,6 +209,47 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
+const normalizeTags = (value) =>
+  [...new Set((Array.isArray(value) ? value : []).map((item) => String(item || "").trim()).filter(Boolean))];
+
+const serializeTags = (tags) => JSON.stringify(normalizeTags(tags));
+
+const parseTagPayload = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    return normalizeTags(JSON.parse(value));
+  } catch (error) {
+    return [];
+  }
+};
+
+const renderTagRail = (label, tags) => {
+  const normalizedTags = normalizeTags(tags);
+
+  if (!normalizedTags.length) {
+    return "";
+  }
+
+  return `
+    ${label ? `<span class="tag-rail-label">${escapeHtml(label)}</span>` : ""}
+    ${normalizedTags.map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}
+  `;
+};
+
+const syncTagRail = (node, label, tags) => {
+  if (!node) {
+    return;
+  }
+
+  node.innerHTML = renderTagRail(label, tags);
+};
+
+const getTagCategory = (tag) =>
+  TAG_CATEGORY_GROUPS.find((group) => group.tags.includes(tag))?.name || "更多主题";
+
 const getBoundaryUrls = (adcode) =>
   GEO_DATA_SOURCES.map((baseUrl) => `${baseUrl}/${adcode}_full.json`);
 
@@ -271,8 +345,73 @@ const getCityNameFromLocation = (location) => {
     return municipalityMatch[1];
   }
 
-  const cityMatch = normalizedLocation.match(/(?:^|省)([^·]+?市)/);
+  const cityMatch = normalizedLocation.match(/(?:^|省|自治区|特别行政区)([^·]+?市)/);
   return cityMatch?.[1] || "";
+};
+
+const getProvinceNameFromLocation = (location) => {
+  const normalizedLocation = String(location || "");
+  const municipalityMatch = normalizedLocation.match(/^(北京市|天津市|上海市|重庆市)/);
+
+  if (municipalityMatch) {
+    return municipalityMatch[1];
+  }
+
+  const provinceMatch = normalizedLocation.match(/^([^·]+?(?:省|自治区|特别行政区))/);
+  return provinceMatch?.[1] || "";
+};
+
+const buildAreaEntryStack = (area, location = "") => {
+  const normalizedAdcode = normalizeAdcode(area.adcode);
+  const cityName = getCityNameFromLocation(location) || area.name;
+  const provinceName = getProvinceNameFromLocation(location);
+
+  if (!normalizedAdcode || normalizedAdcode === "100000") {
+    return [{ adcode: "100000", name: "中国", level: "country" }];
+  }
+
+  if (area.level === "province") {
+    return [
+      { adcode: "100000", name: "中国", level: "country" },
+      {
+        adcode: normalizedAdcode,
+        name: provinceName || area.name,
+        level: "province",
+      },
+    ];
+  }
+
+  if (area.level === "city") {
+    if (directControlledMunicipalities.has(normalizedAdcode)) {
+      return [
+        { adcode: "100000", name: "中国", level: "country" },
+        {
+          adcode: normalizedAdcode,
+          name: cityName || area.name,
+          level: "city",
+        },
+      ];
+    }
+
+    return [
+      { adcode: "100000", name: "中国", level: "country" },
+      {
+        adcode: `${normalizedAdcode.slice(0, 2)}0000`,
+        name: provinceName || area.name,
+        level: "province",
+      },
+      {
+        adcode: normalizedAdcode,
+        name: cityName || area.name,
+        level: "city",
+      },
+    ];
+  }
+
+  return [
+    { adcode: "100000", name: "中国", level: "country" },
+    area,
+  ];
 };
 
 const getAlbumJumpArea = (album) => {
@@ -364,6 +503,116 @@ const getStoryCoverPhotos = () => {
   return appState.storyCoverPhotos;
 };
 
+const getAllTaggedPhotos = () => {
+  if (appState.allTaggedPhotos) {
+    return appState.allTaggedPhotos;
+  }
+
+  const taggedPhotos = [];
+
+  getCatalogAlbums().forEach((album) => {
+    const area = getAlbumJumpArea(album);
+    const normalizedAlbum = normalizeAlbum(album, area);
+
+    normalizedAlbum.photos
+      .filter((photo) => !isPlaceholderAsset(photo) && photo.tags.length)
+      .forEach((photo) => {
+        taggedPhotos.push({
+          ...photo,
+          albumTitle: normalizedAlbum.title || normalizedAlbum.location || area.name,
+          albumMeta: normalizedAlbum.meta || "",
+          albumLocation: normalizedAlbum.location || area.name,
+          albumGroupTags: normalizedAlbum.groupTags || [],
+          shotOnValue: getShotOnValue(photo.shotOn || normalizedAlbum.shotOn),
+        });
+      });
+  });
+
+  taggedPhotos.sort((left, right) => {
+    if (right.shotOnValue !== left.shotOnValue) {
+      return right.shotOnValue - left.shotOnValue;
+    }
+
+    return String(left.albumTitle || "").localeCompare(String(right.albumTitle || ""), "zh-CN");
+  });
+
+  appState.allTaggedPhotos = taggedPhotos;
+  return appState.allTaggedPhotos;
+};
+
+const getTagCollections = () => {
+  if (appState.tagCollections) {
+    return appState.tagCollections;
+  }
+
+  const collections = new Map();
+
+  getAllTaggedPhotos().forEach((photo) => {
+    photo.tags.forEach((tag) => {
+      if (!collections.has(tag)) {
+        collections.set(tag, []);
+      }
+
+      collections.get(tag).push(photo);
+    });
+  });
+
+  appState.tagCollections = [...collections.entries()]
+    .map(([tag, photos]) => ({
+      tag,
+      category: getTagCategory(tag),
+      photos,
+      count: photos.length,
+    }))
+    .sort((left, right) => {
+      const leftCategoryIndex = TAG_CATEGORY_GROUPS.findIndex((group) => group.name === left.category);
+      const rightCategoryIndex = TAG_CATEGORY_GROUPS.findIndex((group) => group.name === right.category);
+
+      if (leftCategoryIndex !== rightCategoryIndex) {
+        return (leftCategoryIndex === -1 ? TAG_CATEGORY_GROUPS.length : leftCategoryIndex) -
+          (rightCategoryIndex === -1 ? TAG_CATEGORY_GROUPS.length : rightCategoryIndex);
+      }
+
+      if (right.count !== left.count) {
+        return right.count - left.count;
+      }
+
+      return left.tag.localeCompare(right.tag, "zh-CN");
+    });
+
+  return appState.tagCollections;
+};
+
+const getTagCategoryCollections = () => {
+  if (appState.tagCategoryCollections) {
+    return appState.tagCategoryCollections;
+  }
+
+  const grouped = TAG_CATEGORY_GROUPS.map((group) => ({
+    name: group.name,
+    items: [],
+  }));
+  const fallbackGroup = {
+    name: "更多主题",
+    items: [],
+  };
+
+  getTagCollections().forEach((item) => {
+    const targetGroup = grouped.find((group) => group.name === item.category) || fallbackGroup;
+    targetGroup.items.push(item);
+  });
+
+  appState.tagCategoryCollections = [...grouped, fallbackGroup]
+    .filter((group) => group.items.length)
+    .map((group) => ({
+      ...group,
+      tagCount: group.items.length,
+      photoCount: group.items.reduce((sum, item) => sum + item.count, 0),
+    }));
+
+  return appState.tagCategoryCollections;
+};
+
 const getPhotoCountForArea = (adcode) => {
   const normalizedAdcode = normalizeAdcode(adcode);
 
@@ -417,6 +666,10 @@ const normalizePhoto = (photo, album, area, photoIndex) => {
     caption: rawPhoto.caption || "",
     metaLine,
     gearLine,
+    location,
+    shotOn,
+    albumTitle: album.title || album.location || area.name,
+    tags: normalizeTags(rawPhoto.tags),
   };
 };
 
@@ -425,6 +678,7 @@ const normalizeAlbum = (album, area) => {
 
   return {
     ...album,
+    groupTags: normalizeTags(album.groupTags),
     photos: rawPhotos.map((photo, photoIndex) => normalizePhoto(photo, album, area, photoIndex)),
   };
 };
@@ -439,7 +693,19 @@ const getAlbumsForArea = (area) => {
     return albumIndex === albums.findIndex((item, itemIndex) => getAlbumKey(item, itemIndex) === currentKey);
   });
 
-  return mergedAlbums.map((album) => normalizeAlbum(album, area));
+  return mergedAlbums
+    .slice()
+    .sort((left, right) => {
+      const leftShotOn = getShotOnValue(left.shotOn);
+      const rightShotOn = getShotOnValue(right.shotOn);
+
+      if (leftShotOn !== rightShotOn) {
+        return rightShotOn - leftShotOn;
+      }
+
+      return getAlbumKey(left, "").localeCompare(getAlbumKey(right, ""), "zh-CN");
+    })
+    .map((album) => normalizeAlbum(album, area));
 };
 
 const renderStoryBackdrop = (photos) => {
@@ -773,6 +1039,15 @@ const setStatus = (text) => {
 };
 
 const syncStackForArea = (area, options = {}) => {
+  if (Array.isArray(options.stackOverride) && options.stackOverride.length) {
+    appState.stack = options.stackOverride.map((item) => ({
+      adcode: item.adcode,
+      name: item.name,
+      level: item.level,
+    }));
+    return;
+  }
+
   if (options.replaceStack) {
     const targetIndex = appState.stack.findIndex((item) => item.adcode === area.adcode);
 
@@ -918,11 +1193,46 @@ const getMapLayout = (area) => {
 };
 
 const openLightbox = (button) => {
-  lightboxImage.src = button.dataset.image || "";
+  const imageSrc = button.dataset.image || "";
+  const syncLightboxShape = () => {
+    if (!lightboxDialog) {
+      return;
+    }
+
+    const ratio = lightboxImage.naturalWidth / lightboxImage.naturalHeight;
+
+    if (!Number.isFinite(ratio) || ratio <= 0) {
+      lightboxDialog.removeAttribute("data-lightbox-shape");
+      return;
+    }
+
+    const shape = ratio < 0.88 ? "portrait" : ratio > 1.85 ? "panorama" : "standard";
+    lightboxDialog.dataset.lightboxShape = shape;
+  };
+
+  lightboxDialog?.removeAttribute("data-lightbox-shape");
+  lightboxImage.src = imageSrc;
   lightboxImage.alt = button.dataset.title || "";
-  lightboxTitle.textContent = button.dataset.title || "";
   lightboxMeta.textContent = button.dataset.meta || "";
   lightboxGear.textContent = button.dataset.gear || "";
+  syncTagRail(lightboxTagRail, "标签", parseTagPayload(button.dataset.tags));
+
+  const layoutToken = `${imageSrc}::${Date.now()}`;
+  lightboxImage.dataset.layoutToken = layoutToken;
+  const applyShape = () => {
+    if (lightboxImage.dataset.layoutToken !== layoutToken) {
+      return;
+    }
+
+    syncLightboxShape();
+  };
+
+  if (lightboxImage.complete && lightboxImage.naturalWidth) {
+    applyShape();
+  } else {
+    lightboxImage.addEventListener("load", applyShape, { once: true });
+  }
+
   lightbox.classList.add("is-open");
   lightbox.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
@@ -932,6 +1242,7 @@ const closeLightbox = () => {
   lightbox.classList.remove("is-open");
   lightbox.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
+  lightboxDialog?.removeAttribute("data-lightbox-shape");
 };
 
 const bindLightboxTriggers = (root = document) => {
@@ -966,16 +1277,25 @@ const syncAlbumFrameLayout = (block, photo, imageNode) => {
     const viewportWidth = window.innerWidth || 1440;
     const viewportHeight = window.innerHeight || 900;
     const isMobile = viewportWidth <= 760;
+    const isMobileLandscape = isMobile && viewportWidth > viewportHeight;
 
     const targetHeight = Math.min(
-      isMobile ? viewportHeight * 0.38 : viewportHeight * 0.54,
-      isMobile ? 360 : 590
+      isMobile
+        ? isMobileLandscape
+          ? viewportHeight * 0.66
+          : viewportHeight * 0.5
+        : viewportHeight * 0.54,
+      isMobile
+        ? isMobileLandscape
+          ? 340
+          : 440
+        : 590
     );
 
-    const minHeight = isMobile ? 252 : 392;
+    const minHeight = isMobile ? (isMobileLandscape ? 208 : 288) : 392;
     const resolvedHeight = Math.max(minHeight, targetHeight);
 
-    const padding = isMobile ? 10 : orientation === "portrait" ? 12 : 16;
+    const padding = isMobile ? (isMobileLandscape ? 6 : 8) : orientation === "portrait" ? 12 : 16;
     const minWidth =
       orientation === "portrait"
         ? isMobile
@@ -991,14 +1311,14 @@ const syncAlbumFrameLayout = (block, photo, imageNode) => {
     const maxWidth =
       orientation === "portrait"
         ? isMobile
-          ? Math.min(viewportWidth - 30, 344)
+          ? Math.min(viewportWidth - (isMobileLandscape ? 20 : 24), 372)
           : 460
         : orientation === "landscape"
           ? isMobile
-            ? viewportWidth - 24
+            ? viewportWidth - (isMobileLandscape ? 12 : 16)
             : 920
           : isMobile
-            ? Math.min(viewportWidth - 28, 382)
+            ? viewportWidth - (isMobileLandscape ? 16 : 20)
             : 680;
     const resolvedWidth = Math.max(
       minWidth,
@@ -1034,6 +1354,387 @@ const syncAlbumFrameLayout = (block, photo, imageNode) => {
   imageNode.addEventListener("load", updateFromImage, { once: true });
 };
 
+const syncVisibleAlbumLayouts = () => {
+  regionGalleryNode?.querySelectorAll(".album-block").forEach((block) => {
+    const mainImage = block.querySelector(".album-main-image");
+
+    if (!mainImage?.naturalWidth || !mainImage?.naturalHeight) {
+      return;
+    }
+
+    syncAlbumFrameLayout(
+      block,
+      {
+        src: mainImage.currentSrc || mainImage.src,
+        aspectRatio: mainImage.naturalWidth / mainImage.naturalHeight,
+      },
+      mainImage
+    );
+  });
+};
+
+const scheduleAlbumLayoutSync = () => {
+  if (pendingAlbumLayoutFrame) {
+    window.cancelAnimationFrame(pendingAlbumLayoutFrame);
+  }
+
+  pendingAlbumLayoutFrame = window.requestAnimationFrame(() => {
+    pendingAlbumLayoutFrame = 0;
+    syncVisibleAlbumLayouts();
+  });
+};
+
+const renderTagPhotoCard = (photo, index) => `
+  <button
+    class="tag-photo-card open-lightbox"
+    type="button"
+    style="--tag-card-index: ${index % 8};"
+    data-image="${escapeHtml(photo.src)}"
+    data-title="${escapeHtml(photo.title || photo.albumTitle)}"
+    data-meta="${escapeHtml(photo.metaLine)}"
+    data-gear="${escapeHtml(photo.gearLine)}"
+    data-tags="${escapeHtml(serializeTags(photo.tags))}"
+  >
+    <div class="tag-photo-visual">
+      <img
+        src="${escapeHtml(photo.src)}"
+        alt="${escapeHtml(photo.alt || photo.albumTitle)}"
+        loading="lazy"
+        decoding="async"
+        fetchpriority="low"
+      />
+    </div>
+    <div class="tag-photo-copy">
+      <p class="tag-photo-meta">${escapeHtml([photo.shotOn, photo.albumTitle].filter(Boolean).join(" · "))}</p>
+      <h4>${escapeHtml(photo.albumTitle || photo.location || "未命名作品")}</h4>
+      <p class="tag-photo-location">${escapeHtml(photo.albumLocation || photo.location || "")}</p>
+      <div class="tag-rail">${renderTagRail("", photo.tags)}</div>
+    </div>
+  </button>
+`;
+
+const renderTagPhotoStream = (photos) => `
+  <div class="tag-photo-grid">
+    ${photos.map((photo, index) => renderTagPhotoCard(photo, index)).join("")}
+  </div>
+`;
+
+const getTagCategoryIndicatorLayout = (row, button) => {
+  const rowRect = row.getBoundingClientRect();
+  const buttonRect = button.getBoundingClientRect();
+
+  return {
+    x: buttonRect.left - rowRect.left,
+    y: buttonRect.top - rowRect.top,
+    width: buttonRect.width,
+    height: buttonRect.height,
+  };
+};
+
+const syncTagCategoryIndicator = () => {
+  const row = tagFilterNode?.querySelector(".tag-category-row");
+  const indicator = row?.querySelector(".tag-category-indicator");
+  const activeButton = row?.querySelector(".tag-category-button.is-active");
+
+  if (!row || !indicator) {
+    return;
+  }
+
+  if (!activeButton) {
+    indicator.classList.remove("is-visible");
+    appState.tagCategoryIndicatorLayout = null;
+    return;
+  }
+
+  const nextLayout = getTagCategoryIndicatorLayout(row, activeButton);
+
+  indicator.classList.add("is-visible");
+  indicator.style.width = `${nextLayout.width}px`;
+  indicator.style.height = `${nextLayout.height}px`;
+  indicator.style.transform = `translate3d(${nextLayout.x}px, ${nextLayout.y}px, 0)`;
+
+  appState.tagCategoryIndicatorLayout = nextLayout;
+};
+
+const renderTagCategoryRow = (categoryCollections, activeCategory) => `
+  <div class="tag-category-row">
+    <div class="tag-category-indicator" aria-hidden="true"></div>
+    ${categoryCollections
+      .map(
+        (group) => `
+          <button
+            class="tag-category-button ${group.name === activeCategory ? "is-active" : ""}"
+            type="button"
+            data-category="${escapeHtml(group.name)}"
+          >
+            <span>${escapeHtml(group.name)}</span>
+            <strong>${group.tagCount} 个 tag</strong>
+          </button>
+        `
+      )
+      .join("")}
+  </div>
+`;
+
+const renderTagFilterPanel = (currentCategory, activeTag) =>
+  currentCategory
+    ? `
+        <section class="tag-filter-group">
+          <div class="tag-filter-group-header">
+            <p class="tag-filter-group-title">${escapeHtml(currentCategory.name)}</p>
+            <span>${currentCategory.tagCount} 个 tag · ${currentCategory.photoCount} 张照片</span>
+          </div>
+          <div class="tag-filter-group-list">
+            ${currentCategory.items
+              .map(
+                (item) => `
+                  <button
+                    class="tag-filter-button ${item.tag === activeTag ? "is-active" : ""}"
+                    type="button"
+                    data-tag="${escapeHtml(item.tag)}"
+                  >
+                    <span>${escapeHtml(item.tag)}</span>
+                    <strong>${item.count}</strong>
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        </section>
+      `
+    : `
+        <section class="tag-filter-guide">
+          <p>先选择一个一级分类，再展开二级 tag。</p>
+        </section>
+      `;
+
+const bindTagCategoryButtons = () => {
+  tagFilterNode?.querySelectorAll(".tag-category-button").forEach((button) => {
+    const requestedCategory = button.dataset.category || "";
+
+    if (
+      appState.tagCategoryHoverEnabled &&
+      window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches
+    ) {
+      button.addEventListener("mouseenter", () => {
+        if (requestedCategory === appState.selectedTagCategory) {
+          return;
+        }
+
+        renderTagAtlas({
+          category: requestedCategory,
+          tag: "",
+        });
+      });
+    }
+
+    button.addEventListener("click", () => {
+      const lockingHoverMode = appState.tagCategoryHoverEnabled;
+      appState.tagCategoryHoverEnabled = false;
+      renderTagAtlas({
+        category: lockingHoverMode
+          ? requestedCategory
+          : requestedCategory === appState.selectedTagCategory
+            ? ""
+            : requestedCategory,
+        tag: "",
+      });
+    });
+  });
+};
+
+const bindTagCategoryDockEffect = () => {
+  const row = tagFilterNode?.querySelector(".tag-category-row");
+  const buttons = row ? [...row.querySelectorAll(".tag-category-button")] : [];
+
+  if (!row || !buttons.length || !window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches) {
+    return;
+  }
+
+  const resetDockEffect = () => {
+    buttons.forEach((button) => {
+      button.style.removeProperty("--tag-dock-scale");
+      button.style.removeProperty("--tag-dock-lift");
+      button.style.removeProperty("--tag-dock-shadow");
+      button.style.removeProperty("--tag-dock-brightness");
+      button.style.zIndex = "1";
+    });
+  };
+
+  row.addEventListener("mouseleave", resetDockEffect);
+  row.addEventListener("mousemove", (event) => {
+    buttons.forEach((button) => {
+      const rect = button.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(event.clientX - centerX, (event.clientY - centerY) * 1.2);
+      const influence = Math.max(0, 1 - distance / 210);
+      const scale = 1 + influence * 0.18;
+      const shadow = influence * 18;
+      const brightness = 1 + influence * 0.08;
+
+      button.style.setProperty("--tag-dock-scale", scale.toFixed(3));
+      button.style.setProperty("--tag-dock-shadow", `${shadow.toFixed(2)}px`);
+      button.style.setProperty("--tag-dock-brightness", brightness.toFixed(3));
+      button.style.zIndex = String(1 + Math.round(influence * 10));
+    });
+  });
+};
+
+const bindTagFilterButtons = () => {
+  tagFilterNode?.querySelectorAll(".tag-filter-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const requestedTag = button.dataset.tag || "";
+      renderTagAtlas({
+        category: appState.selectedTagCategory,
+        tag: requestedTag === appState.selectedTag ? "" : requestedTag,
+      });
+    });
+  });
+};
+
+const animateTagFilterHeight = (fromHeight) => {
+  if (!tagFilterNode || !Number.isFinite(fromHeight) || fromHeight <= 0) {
+    return;
+  }
+
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+    tagFilterNode.style.removeProperty("height");
+    tagFilterNode.style.removeProperty("overflow");
+    return;
+  }
+
+  const toHeight = tagFilterNode.getBoundingClientRect().height;
+
+  if (!Number.isFinite(toHeight) || Math.abs(toHeight - fromHeight) < 2) {
+    tagFilterNode.style.removeProperty("height");
+    tagFilterNode.style.removeProperty("overflow");
+    return;
+  }
+
+  appState.tagFilterResizeToken += 1;
+  const resizeToken = appState.tagFilterResizeToken;
+
+  tagFilterNode.classList.add("is-resizing");
+  tagFilterNode.style.height = `${fromHeight}px`;
+  tagFilterNode.style.overflow = "clip";
+
+  window.requestAnimationFrame(() => {
+    if (resizeToken !== appState.tagFilterResizeToken) {
+      return;
+    }
+
+    tagFilterNode.style.height = `${toHeight}px`;
+  });
+
+  window.setTimeout(() => {
+    if (resizeToken !== appState.tagFilterResizeToken) {
+      return;
+    }
+
+    tagFilterNode.classList.remove("is-resizing");
+    tagFilterNode.style.removeProperty("height");
+    tagFilterNode.style.removeProperty("overflow");
+  }, 460);
+};
+
+const renderTagAtlas = ({
+  category = appState.selectedTagCategory,
+  tag = appState.selectedTag,
+} = {}) => {
+  const collections = getTagCollections();
+  const categoryCollections = getTagCategoryCollections();
+
+  if (!tagFilterNode || !tagSummaryNode || !tagAtlasGalleryNode || !collections.length) {
+    return;
+  }
+
+  const activeCategory = categoryCollections.some((item) => item.name === category) ? category : "";
+  const currentCategory = activeCategory
+    ? categoryCollections.find((item) => item.name === activeCategory) || null
+    : null;
+  const activeTag =
+    currentCategory && currentCategory.items.some((item) => item.tag === tag) ? tag : "";
+  const currentCollection = activeTag
+    ? collections.find((item) => item.tag === activeTag) || null
+    : null;
+  const previousCategory = appState.selectedTagCategory;
+  const categoryChanged = previousCategory !== activeCategory;
+  const previousFilterHeight = tagFilterNode.getBoundingClientRect().height;
+
+  appState.selectedTagCategory = activeCategory;
+  appState.selectedTag = activeTag;
+
+  const nextFilterPanelMarkup = renderTagFilterPanel(currentCategory, activeTag);
+
+  if (categoryChanged || !tagFilterNode.querySelector(".tag-category-row")) {
+    tagFilterNode.innerHTML = `${renderTagCategoryRow(categoryCollections, activeCategory)}${nextFilterPanelMarkup}`;
+    bindTagCategoryButtons();
+    bindTagCategoryDockEffect();
+    syncTagCategoryIndicator();
+  } else {
+    const existingPanel = tagFilterNode.querySelector(".tag-filter-group, .tag-filter-guide");
+
+    if (existingPanel) {
+      existingPanel.outerHTML = nextFilterPanelMarkup;
+    } else {
+      tagFilterNode.insertAdjacentHTML("beforeend", nextFilterPanelMarkup);
+    }
+  }
+
+  animateTagFilterHeight(previousFilterHeight);
+
+  tagSummaryNode.innerHTML = "";
+
+  tagAtlasGalleryNode.innerHTML = currentCollection
+    ? renderTagPhotoStream(currentCollection.photos)
+    : "";
+
+  bindTagFilterButtons();
+
+  const shouldAnimateFilter = Boolean(currentCategory && categoryChanged);
+  const shouldAnimateSummary = false;
+  const shouldAnimateGallery = Boolean(currentCollection);
+
+  tagFilterNode.classList.remove("is-animating");
+  tagSummaryNode.classList.remove("is-animating");
+  tagAtlasGalleryNode.classList.remove("is-animating");
+
+  if (shouldAnimateFilter || shouldAnimateSummary || shouldAnimateGallery) {
+    void tagFilterNode.offsetWidth;
+    void tagSummaryNode.offsetWidth;
+    void tagAtlasGalleryNode.offsetWidth;
+  }
+
+  if (shouldAnimateFilter) {
+    tagFilterNode.classList.add("is-animating");
+  }
+
+  if (shouldAnimateSummary) {
+    tagSummaryNode.classList.add("is-animating");
+  }
+
+  if (shouldAnimateGallery) {
+    tagAtlasGalleryNode.classList.add("is-animating");
+    bindLightboxTriggers(tagAtlasGalleryNode);
+  }
+
+  if (shouldAnimateFilter || shouldAnimateSummary || shouldAnimateGallery) {
+    appState.tagAtlasAnimationToken += 1;
+    const animationToken = appState.tagAtlasAnimationToken;
+
+    window.setTimeout(() => {
+      if (animationToken !== appState.tagAtlasAnimationToken) {
+        return;
+      }
+
+      tagFilterNode.classList.remove("is-animating");
+      tagSummaryNode.classList.remove("is-animating");
+      tagAtlasGalleryNode.classList.remove("is-animating");
+    }, 980);
+  }
+};
+
 const renderMasonryTiles = (album) =>
   album.photos
     .map(
@@ -1044,6 +1745,8 @@ const renderMasonryTiles = (album) =>
           data-title="${escapeHtml(photo.title)}"
           data-meta="${escapeHtml(photo.metaLine)}"
           data-gear="${escapeHtml(photo.gearLine)}"
+          data-tags="${escapeHtml(serializeTags(photo.tags))}"
+          data-album-tags="${escapeHtml(serializeTags(album.groupTags))}"
         >
           <img
             src="${escapeHtml(photo.src)}"
@@ -1070,6 +1773,7 @@ const syncAlbumCarousel = (albumIndex, album, imageIndex) => {
   const meta = block.querySelector(".album-photo-meta");
   const caption = block.querySelector(".album-caption");
   const gear = block.querySelector(".album-photo-gear");
+  const groupTags = block.querySelector(".album-group-tags");
   const mainButton = block.querySelector(".album-main-button");
 
   mainImage.src = currentPhoto.src;
@@ -1078,6 +1782,8 @@ const syncAlbumCarousel = (albumIndex, album, imageIndex) => {
   mainButton.dataset.title = currentPhoto.title;
   mainButton.dataset.meta = currentPhoto.metaLine;
   mainButton.dataset.gear = currentPhoto.gearLine;
+  mainButton.dataset.tags = serializeTags(currentPhoto.tags);
+  mainButton.dataset.albumTags = serializeTags(album.groupTags);
   syncAlbumFrameLayout(block, currentPhoto, mainImage);
   counters.forEach((counter) => {
     counter.textContent = `${imageIndex + 1} / ${album.photos.length}`;
@@ -1085,6 +1791,7 @@ const syncAlbumCarousel = (albumIndex, album, imageIndex) => {
   meta.textContent = currentPhoto.metaLine;
   caption.textContent = currentPhoto.caption;
   gear.textContent = currentPhoto.gearLine;
+  syncTagRail(groupTags, "", album.groupTags);
 
   block.querySelectorAll(".album-thumb").forEach((thumb, thumbIndex) => {
     thumb.classList.toggle("is-active", thumbIndex === imageIndex);
@@ -1278,6 +1985,8 @@ const renderGallery = (area) => {
               data-title="${escapeHtml(album.photos[0]?.title)}"
               data-meta="${escapeHtml(album.photos[0]?.metaLine)}"
               data-gear="${escapeHtml(album.photos[0]?.gearLine)}"
+              data-tags="${escapeHtml(serializeTags(album.photos[0]?.tags))}"
+              data-album-tags="${escapeHtml(serializeTags(album.groupTags))}"
             >
               <img
                 class="album-main-image"
@@ -1300,6 +2009,7 @@ const renderGallery = (area) => {
           <p class="album-photo-meta">${escapeHtml(album.photos[0]?.metaLine)}</p>
           <p class="album-caption">${escapeHtml(album.photos[0]?.caption)}</p>
           <p class="album-photo-gear">${escapeHtml(album.photos[0]?.gearLine)}</p>
+          <div class="tag-rail album-group-tags">${renderTagRail("", album.groupTags)}</div>
 
           <div class="album-thumbs">
             ${album.photos
@@ -1352,6 +2062,7 @@ const renderCountryPanel = () => {
             const jumpArea = getAlbumJumpArea(album);
             const cover = album.photos?.[0]?.src || album.images?.[0] || "";
             const count = getAssetCount(album, { includePlaceholders: false });
+            const entryStack = buildAreaEntryStack(jumpArea, album.location);
 
             return `
               <button
@@ -1359,7 +2070,8 @@ const renderCountryPanel = () => {
                 type="button"
                 data-adcode="${escapeHtml(jumpArea.adcode)}"
                 data-level="${escapeHtml(jumpArea.level)}"
-                data-name="${escapeHtml(jumpArea.name)}"
+                data-name="${escapeHtml(entryStack[entryStack.length - 1]?.name || jumpArea.name)}"
+                data-stack="${escapeHtml(JSON.stringify(entryStack))}"
               >
                 <img
                   src="${escapeHtml(cover)}"
@@ -1383,10 +2095,20 @@ const renderCountryPanel = () => {
 
   regionGalleryNode.querySelectorAll(".country-quick-card").forEach((button) => {
     button.addEventListener("click", async () => {
+      let entryStack = null;
+
+      try {
+        entryStack = JSON.parse(button.dataset.stack || "null");
+      } catch (error) {
+        entryStack = null;
+      }
+
       await loadArea({
         adcode: button.dataset.adcode || "",
         name: button.dataset.name || "",
         level: button.dataset.level || "city",
+      }, {
+        stackOverride: Array.isArray(entryStack) ? entryStack : undefined,
       });
     });
   });
@@ -1671,6 +2393,13 @@ const setupChart = () => {
 
   window.addEventListener("resize", () => {
     scheduleChartResize();
+    scheduleAlbumLayoutSync();
+    syncTagCategoryIndicator({ animate: false });
+  });
+
+  window.addEventListener("orientationchange", () => {
+    scheduleAlbumLayoutSync();
+    syncTagCategoryIndicator({ animate: false });
   });
 
   if ("ResizeObserver" in window) {
@@ -1758,6 +2487,7 @@ const revealObserver = new IntersectionObserver(
 revealItems.forEach((item) => revealObserver.observe(item));
 
 setupStoryCover();
+renderTagAtlas();
 setupChart();
 
 if (appState.chart) {
