@@ -62,6 +62,7 @@ const appState = {
   tagCategoryHoverEnabled: true,
   selectedTagCategory: "",
   selectedTag: "",
+  expandedTagCategories: new Set(),
   zoom: 1.05,
 };
 
@@ -78,6 +79,7 @@ const themeMediaQuery =
   typeof window.matchMedia === "function"
     ? window.matchMedia("(prefers-color-scheme: dark)")
     : null;
+const ENABLE_DESKTOP_MAP_PERFORMANCE_MODE = true;
 const STORY_TRACK_REPEATS = 5;
 
 const STORY_ROW_SETTINGS = [
@@ -90,23 +92,60 @@ const STORY_ROW_SETTINGS = [
 const TAG_CATEGORY_GROUPS = [
   {
     name: "人文摄影",
-    tags: ["人物", "人群", "街景", "胡同", "古镇", "故居", "乡村", "街区"],
+    tags: [
+      "人物", "人群", "街景", "胡同", "古镇", "故居", "乡村", "街区",
+      "行人", "游客", "乘客", "人像", "校园", "村庄", "村居", "村落",
+      "街巷", "老街", "乌篷船", "摄影者", "写生", "旅途", "车厢", "自驾",
+      "游人", "车窗", "舷窗", "窗景", "机翼", "公交前排", "航空箱", "宠物",
+      "宠物犬", "长毛猫", "小狗", "牵引绳", "红色玩具", "吐舌", "趴卧", "站姿", "坐姿",
+    ],
   },
   {
     name: "风光摄影",
-    tags: ["山景", "水景", "山水", "海边", "沙滩", "江景", "湖景", "日落", "自然", "蓝天"],
+    tags: [
+      "山景", "水景", "山水", "海边", "沙滩", "江景", "湖景", "日落", "自然", "蓝天",
+      "草原", "草坡", "草场", "草甸", "草岸", "山谷", "山坡", "山峰", "山脊", "山路",
+      "山形", "山口", "山海", "海湾", "海岸", "海面", "海浪", "江面", "湖面", "水面",
+      "水岸", "湖岸", "溪流", "溪谷", "倒影", "云层", "云影", "云团", "云霞", "晚霞",
+      "落日", "远山", "地平线", "营地", "风机", "礁石", "土林", "峡谷", "湿地", "航拍",
+      "全景", "静水", "波纹", "白云", "河道", "田野", "堤岸", "堤道", "步道", "公路",
+      "彩虹路", "盘山路", "土路", "湖畔", "蓝空", "霞光", "暮色", "夜色", "远景",
+      "渔船", "游船", "货船", "船只", "渔港", "羊群", "鹅群", "牛群", "牛犊", "母牛",
+      "白山羊", "骆驼", "鸵鸟", "火烈鸟", "鹈鹕", "巨嘴鸟", "鹦鹉", "双鸟", "群栖", "栖枝",
+      "探头", "牧马", "牧场", "围栏", "卧牛", "饮水", "草丛", "草径", "火山口", "环形山",
+      "乱石", "云海", "日晕", "月亮", "白桦", "林带", "林梢",
+    ],
   },
   {
     name: "城市建筑",
-    tags: ["城市夜景", "城市", "高楼", "建筑", "地标建筑", "古建", "寺庙", "城楼", "石窟", "石景", "桥", "门窗", "屋檐", "台阶", "场馆"],
+    tags: [
+      "城市夜景", "城市", "高楼", "建筑", "地标建筑", "古建", "寺庙", "城楼", "石窟", "石景",
+      "桥", "门窗", "屋檐", "台阶", "场馆", "夜景", "天际线", "桥梁", "古桥", "桥塔",
+      "码头", "港口", "站房", "站台", "铁路", "白塔", "故宫", "牌楼", "斗拱", "飞檐",
+      "檐角", "屋脊", "藻井", "木构", "亭台", "教堂", "塔楼", "门头", "橱窗", "店招",
+      "民居", "寺门", "地标", "楼梯", "天安门", "央视大楼", "佛像", "佛龛", "窟龛", "洞窟",
+      "崖壁", "石栏", "纹样", "雕刻", "匾额", "拱门", "桥洞", "水巷", "壁画", "文创", "手办",
+      "停车场", "列车", "车流", "夜路",
+    ],
   },
   {
     name: "花卉植物",
-    tags: ["花卉", "郁金香", "树木", "树叶", "枝叶", "绿植", "草地", "公园", "园林"],
+    tags: [
+      "花卉", "郁金香", "树木", "树叶", "枝叶", "绿植", "草地", "公园", "园林", "银杏",
+      "樱花", "红枫", "红叶", "秋叶", "树冠", "树影", "树梢", "花枝", "花簇", "花田",
+      "花海", "桂花", "黄花", "粉花", "嫩叶", "枝干", "枝头", "竹林", "竹子", "柳树",
+      "花树", "油菜花", "草坪", "野花",
+      "垂柳", "树枝",
+    ],
   },
   {
     name: "现场纪实",
-    tags: ["演唱会", "舞台", "网球", "比赛", "运动", "球拍", "烟花"],
+    tags: [
+      "演唱会", "舞台", "网球", "比赛", "运动", "球拍", "烟花", "赛车", "赛道", "看台",
+      "弯道", "双车", "多车", "对决", "引导车", "赛事", "发球", "回球", "双打", "球场",
+      "舞台屏幕", "观众", "荧光棒", "灯会", "灯笼", "鱼灯", "热气球", "喷火", "夜场",
+      "展车", "球景", "街头表演", "活动", "邓紫棋", "灯光", "跑车", "戏甲", "戏装", "彩灯", "孔雀灯",
+    ],
   },
 ];
 const STORY_COVER_SOURCES = [
@@ -253,7 +292,27 @@ const getTagCategory = (tag) =>
 const getBoundaryUrls = (adcode) =>
   GEO_DATA_SOURCES.map((baseUrl) => `${baseUrl}/${adcode}_full.json`);
 
-const normalizeAdcode = (value) => String(value || "");
+const normalizeAdcode = (value) => {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const sixDigitMatch = raw.match(/\d{6}/);
+
+  if (sixDigitMatch) {
+    return sixDigitMatch[0];
+  }
+
+  const digitsOnly = raw.replace(/\D/g, "");
+  return digitsOnly.length === 6 ? digitsOnly : "";
+};
+
+const isMobilePerformanceMode = () =>
+  window.matchMedia("(max-width: 900px), (pointer: coarse)").matches;
+const isMapPerformanceMode = () =>
+  isMobilePerformanceMode() || ENABLE_DESKTOP_MAP_PERFORMANCE_MODE;
 
 const getStoryCoverAsset = (src) =>
   String(src || "").replace("./assets/photos/", "./assets/photos/story-cover/");
@@ -261,6 +320,9 @@ const getStoryCoverAsset = (src) =>
 const getFeatureAdcode = (feature) =>
   normalizeAdcode(
     feature?.properties?.adcode ||
+      feature?.properties?.adcode_district ||
+      feature?.properties?.adcode_city ||
+      feature?.properties?.adcode_pro ||
       feature?.properties?.code ||
       feature?.properties?.id ||
       feature?.id
@@ -289,7 +351,27 @@ const inferAreaLevelFromAdcode = (adcode, parentArea) => {
 const getAlbumKey = (album, fallbackIndex) =>
   album.id || [album.title, album.meta, album.location, fallbackIndex].filter(Boolean).join("::");
 
-const getAreaPrefix = (adcode) => normalizeAdcode(adcode).replace(/0+$/, "");
+const getAdcodeLevel = (adcode) => {
+  const normalizedAdcode = normalizeAdcode(adcode);
+
+  if (!normalizedAdcode) {
+    return "";
+  }
+
+  if (normalizedAdcode === "100000") {
+    return "country";
+  }
+
+  if (normalizedAdcode.endsWith("0000")) {
+    return "province";
+  }
+
+  if (normalizedAdcode.endsWith("00")) {
+    return "city";
+  }
+
+  return "district";
+};
 
 const isAlbumWithinArea = (targetAdcode, areaAdcode) => {
   const normalizedTarget = normalizeAdcode(targetAdcode);
@@ -307,7 +389,17 @@ const isAlbumWithinArea = (targetAdcode, areaAdcode) => {
     return true;
   }
 
-  return getAreaPrefix(normalizedTarget).startsWith(getAreaPrefix(normalizedArea));
+  const areaLevel = getAdcodeLevel(normalizedArea);
+
+  if (areaLevel === "province") {
+    return normalizedTarget.slice(0, 2) === normalizedArea.slice(0, 2);
+  }
+
+  if (areaLevel === "city") {
+    return normalizedTarget.slice(0, 4) === normalizedArea.slice(0, 4);
+  }
+
+  return false;
 };
 
 const catalogAlbums = Object.entries(photoCatalog).flatMap(([ownerAdcode, albums]) =>
@@ -645,15 +737,21 @@ const normalizePhoto = (photo, album, area, photoIndex) => {
   const shotOn = rawPhoto.shotOn || album.shotOn || "";
   const isPlaceholderImage = String(rawPhoto.src || "").endsWith(".svg");
   const metaLine = rawPhoto.metaLine || [location, shotOn, `第 ${photoIndex + 1} 张`].filter(Boolean).join(" · ");
-  const hasExplicitGear = Boolean(rawPhoto.camera || rawPhoto.lens || album.camera || album.lens);
+  const hasPhotoCamera = Object.prototype.hasOwnProperty.call(rawPhoto, "camera");
+  const hasPhotoLens = Object.prototype.hasOwnProperty.call(rawPhoto, "lens");
+  const cameraValue = hasPhotoCamera ? rawPhoto.camera : album.camera;
+  const lensValue = hasPhotoLens ? rawPhoto.lens : hasPhotoCamera ? "" : album.lens;
+  const hasExplicitGear = Boolean(cameraValue || lensValue);
   const gearLine =
     rawPhoto.gearLine ||
     [
-      rawPhoto.camera || album.camera || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_CAMERA),
-      rawPhoto.lens || album.lens || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_LENS),
+      cameraValue || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_CAMERA),
+      lensValue || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_LENS),
     ]
       .filter(Boolean)
       .join(" · ");
+  const camera = cameraValue || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_CAMERA);
+  const lens = lensValue || (isPlaceholderImage || hasExplicitGear ? "" : DEFAULT_LENS);
 
   return {
     src: rawPhoto.src || "",
@@ -666,6 +764,8 @@ const normalizePhoto = (photo, album, area, photoIndex) => {
     caption: rawPhoto.caption || "",
     metaLine,
     gearLine,
+    camera,
+    lens,
     location,
     shotOn,
     albumTitle: album.title || album.location || area.name,
@@ -684,16 +784,21 @@ const normalizeAlbum = (album, area) => {
 };
 
 const getAlbumsForArea = (area) => {
-  const directAlbums = photoCatalog[area.adcode] || [];
-  const linkedAlbums = Object.values(photoCatalog)
-    .flat()
-    .filter((album) => Array.isArray(album.areas) && album.areas.includes(area.adcode));
-  const mergedAlbums = [...directAlbums, ...linkedAlbums].filter((album, albumIndex, albums) => {
-    const currentKey = getAlbumKey(album, albumIndex);
-    return albumIndex === albums.findIndex((item, itemIndex) => getAlbumKey(item, itemIndex) === currentKey);
+  const normalizedAreaAdcode = normalizeAdcode(area.adcode);
+  const mergedAlbums = getCatalogAlbums().filter((album) => {
+    const targets = [album.ownerAdcode, ...(Array.isArray(album.areas) ? album.areas : [])];
+    return targets.some((targetAdcode) => isAlbumWithinArea(targetAdcode, normalizedAreaAdcode));
   });
 
-  return mergedAlbums
+  const uniqueAlbums = mergedAlbums.filter((album, albumIndex, albums) => {
+    const currentKey = album.catalogKey || getAlbumKey(album, albumIndex);
+    return albumIndex === albums.findIndex((item, itemIndex) => {
+      const candidateKey = item.catalogKey || getAlbumKey(item, itemIndex);
+      return candidateKey === currentKey;
+    });
+  });
+
+  return uniqueAlbums
     .slice()
     .sort((left, right) => {
       const leftShotOn = getShotOnValue(left.shotOn);
@@ -1038,6 +1143,24 @@ const setStatus = (text) => {
   mapStatus.textContent = text;
 };
 
+const scrollAtlasIntoView = ({ behavior = "smooth" } = {}) => {
+  if (!atlasNode) {
+    return;
+  }
+
+  const atlasTop = Math.max(window.scrollY + atlasNode.getBoundingClientRect().top - 18, 0);
+  const currentTop = window.scrollY || window.pageYOffset || 0;
+
+  if (Math.abs(currentTop - atlasTop) < 8) {
+    return;
+  }
+
+  window.scrollTo({
+    top: atlasTop,
+    behavior,
+  });
+};
+
 const syncStackForArea = (area, options = {}) => {
   if (Array.isArray(options.stackOverride) && options.stackOverride.length) {
     appState.stack = options.stackOverride.map((item) => ({
@@ -1174,8 +1297,8 @@ const scheduleChartResize = () => {
 const getMapLayout = (area) => {
   if (area.level === "country") {
     return {
-      layoutCenter: ["50%", "53%"],
-      layoutSize: "120%",
+      layoutCenter: ["50%", "50%"],
+      layoutSize: "112%",
     };
   }
 
@@ -1373,6 +1496,130 @@ const syncVisibleAlbumLayouts = () => {
   });
 };
 
+const ALBUM_THUMB_COLLAPSED_ROWS = 2;
+
+const animateAlbumThumbHeight = (thumbsWrap, mutateLayout) => {
+  if (!thumbsWrap || typeof mutateLayout !== "function") {
+    return;
+  }
+
+  const startHeight = thumbsWrap.getBoundingClientRect().height;
+  mutateLayout();
+  const endHeight = thumbsWrap.getBoundingClientRect().height;
+
+  if (Math.abs(endHeight - startHeight) < 1) {
+    return;
+  }
+
+  thumbsWrap.classList.add("is-animating-height");
+  thumbsWrap.style.height = `${startHeight}px`;
+  thumbsWrap.style.overflow = "hidden";
+  thumbsWrap.style.willChange = "height";
+  void thumbsWrap.offsetHeight;
+  thumbsWrap.style.height = `${endHeight}px`;
+
+  const cleanup = () => {
+    thumbsWrap.classList.remove("is-animating-height");
+    thumbsWrap.style.removeProperty("height");
+    thumbsWrap.style.removeProperty("overflow");
+    thumbsWrap.style.removeProperty("will-change");
+  };
+
+  const fallbackTimer = window.setTimeout(cleanup, 420);
+  thumbsWrap.addEventListener(
+    "transitionend",
+    (event) => {
+      if (event.propertyName !== "height") {
+        return;
+      }
+
+      window.clearTimeout(fallbackTimer);
+      cleanup();
+    },
+    { once: true }
+  );
+};
+
+const syncAlbumThumbOverflow = (block) => {
+  if (!block) {
+    return;
+  }
+
+  const thumbsWrap = block.querySelector(".album-thumbs");
+
+  if (!thumbsWrap) {
+    return;
+  }
+
+  const thumbs = [...thumbsWrap.querySelectorAll(".album-thumb:not(.album-thumb-toggle)")];
+  thumbsWrap.querySelectorAll(".album-thumb-toggle").forEach((node) => node.remove());
+  thumbsWrap.classList.remove("is-thumbs-collapsed");
+  thumbs.forEach((thumb) => thumb.classList.remove("is-thumb-hidden"));
+
+  const rowTops = [...new Set(thumbs.map((thumb) => thumb.offsetTop))].sort((left, right) => left - right);
+
+  if (rowTops.length <= ALBUM_THUMB_COLLAPSED_ROWS) {
+    return;
+  }
+
+  const collapseRowTop = rowTops[ALBUM_THUMB_COLLAPSED_ROWS - 1];
+  const visibleCount = thumbs.filter((thumb) => thumb.offsetTop <= collapseRowTop + 1).length;
+
+  if (visibleCount <= 1 || visibleCount >= thumbs.length) {
+    return;
+  }
+
+  const createThumbToggle = ({ expanded, hiddenCount }) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `album-thumb album-thumb-toggle ${expanded ? "is-collapse" : "is-expand"}`;
+    button.setAttribute(
+      "aria-label",
+      expanded ? "收起预览图" : `展开全部预览图（还剩 ${hiddenCount} 张）`
+    );
+    button.innerHTML = `
+      <span class="album-thumb-toggle-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="${expanded ? "M7 14l5-5 5 5" : "M7 10l5 5 5-5"}" />
+        </svg>
+      </span>
+      <span class="album-thumb-toggle-label">${expanded ? "收起" : "展开"}</span>
+      ${expanded ? "" : `<span class="album-thumb-toggle-count">+${hiddenCount}</span>`}
+    `;
+    button.addEventListener("click", () => {
+      animateAlbumThumbHeight(thumbsWrap, () => {
+        block.dataset.thumbsExpanded = expanded ? "false" : "true";
+        syncAlbumThumbOverflow(block);
+      });
+    });
+    return button;
+  };
+
+  const keepThumbCount = visibleCount - 1;
+  const hiddenCount = thumbs.length - keepThumbCount;
+  const isExpanded = block.dataset.thumbsExpanded === "true";
+
+  if (isExpanded) {
+    thumbsWrap.append(createThumbToggle({ expanded: true, hiddenCount }));
+    return;
+  }
+
+  thumbs.forEach((thumb, index) => {
+    if (index >= keepThumbCount) {
+      thumb.classList.add("is-thumb-hidden");
+    }
+  });
+
+  thumbsWrap.append(createThumbToggle({ expanded: false, hiddenCount }));
+  thumbsWrap.classList.add("is-thumbs-collapsed");
+};
+
+const syncVisibleAlbumThumbOverflows = () => {
+  regionGalleryNode?.querySelectorAll(".album-block").forEach((block) => {
+    syncAlbumThumbOverflow(block);
+  });
+};
+
 const scheduleAlbumLayoutSync = () => {
   if (pendingAlbumLayoutFrame) {
     window.cancelAnimationFrame(pendingAlbumLayoutFrame);
@@ -1381,6 +1628,7 @@ const scheduleAlbumLayoutSync = () => {
   pendingAlbumLayoutFrame = window.requestAnimationFrame(() => {
     pendingAlbumLayoutFrame = 0;
     syncVisibleAlbumLayouts();
+    syncVisibleAlbumThumbOverflows();
   });
 };
 
@@ -1476,37 +1724,81 @@ const renderTagCategoryRow = (categoryCollections, activeCategory) => `
   </div>
 `;
 
-const renderTagFilterPanel = (currentCategory, activeTag) =>
-  currentCategory
-    ? `
-        <section class="tag-filter-group">
-          <div class="tag-filter-group-header">
-            <p class="tag-filter-group-title">${escapeHtml(currentCategory.name)}</p>
-            <span>${currentCategory.tagCount} 个 tag · ${currentCategory.photoCount} 张照片</span>
-          </div>
-          <div class="tag-filter-group-list">
-            ${currentCategory.items
-              .map(
-                (item) => `
-                  <button
-                    class="tag-filter-button ${item.tag === activeTag ? "is-active" : ""}"
-                    type="button"
-                    data-tag="${escapeHtml(item.tag)}"
-                  >
-                    <span>${escapeHtml(item.tag)}</span>
-                    <strong>${item.count}</strong>
-                  </button>
-                `
-              )
-              .join("")}
-          </div>
-        </section>
-      `
-    : `
-        <section class="tag-filter-guide">
-          <p>先选择一个一级分类，再展开二级 tag。</p>
-        </section>
-      `;
+const renderTagFilterPanel = (currentCategory, activeTag, isExpanded = false) => {
+  if (!currentCategory) {
+    return `
+      <section class="tag-filter-guide">
+        <p>先选择一个一级分类，再展开二级 tag。</p>
+      </section>
+    `;
+  }
+
+  const primaryItems = currentCategory.items.filter((item) => item.count >= 4);
+  const hiddenItems = currentCategory.items.filter((item) => item.count < 4);
+  const shouldForceExpand = hiddenItems.some((item) => item.tag === activeTag);
+  const resolvedExpanded = isExpanded || shouldForceExpand;
+  const visibleItems =
+    resolvedExpanded || !primaryItems.length ? currentCategory.items : primaryItems;
+  const visibleCount = visibleItems.length;
+  const hiddenCount = hiddenItems.length;
+  const toggleLabel = resolvedExpanded ? "收起低频 tag" : `展开低频 tag (${hiddenCount})`;
+
+  return `
+    <section class="tag-filter-group">
+      <div class="tag-filter-group-header">
+        <p class="tag-filter-group-title">${escapeHtml(currentCategory.name)}</p>
+        <span>显示 ${visibleCount} / ${currentCategory.tagCount} 个 tag · ${currentCategory.photoCount} 张照片</span>
+      </div>
+      <div class="tag-filter-group-list">
+        ${visibleItems
+          .map(
+            (item) => `
+              <button
+                class="tag-filter-button ${item.tag === activeTag ? "is-active" : ""}"
+                type="button"
+                data-tag="${escapeHtml(item.tag)}"
+              >
+                <span>${escapeHtml(item.tag)}</span>
+                <strong>${item.count}</strong>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+      ${
+        hiddenCount
+          ? `
+            <div class="tag-filter-toggle-row">
+              <button
+                class="tag-filter-toggle"
+                type="button"
+                data-category-toggle="${escapeHtml(currentCategory.name)}"
+                data-expanded="${resolvedExpanded ? "true" : "false"}"
+              >
+                ${escapeHtml(toggleLabel)}
+              </button>
+            </div>
+          `
+          : ""
+      }
+    </section>
+  `;
+};
+
+const collapseTagAtlasView = () => {
+  const hasExpandedCategories = appState.expandedTagCategories.size > 0;
+  const hasActiveFilter = Boolean(appState.selectedTagCategory || appState.selectedTag);
+
+  if (!hasExpandedCategories && !hasActiveFilter) {
+    return;
+  }
+
+  appState.expandedTagCategories.clear();
+  renderTagAtlas({
+    category: "",
+    tag: "",
+  });
+};
 
 const bindTagCategoryButtons = () => {
   tagFilterNode?.querySelectorAll(".tag-category-button").forEach((button) => {
@@ -1593,6 +1885,35 @@ const bindTagFilterButtons = () => {
   });
 };
 
+const bindTagFilterToggleButtons = () => {
+  tagFilterNode?.querySelectorAll("[data-category-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const category = button.dataset.categoryToggle || "";
+      const isExpanded = button.dataset.expanded === "true";
+
+      if (!category) {
+        return;
+      }
+
+      if (isExpanded) {
+        appState.expandedTagCategories.delete(category);
+      } else {
+        appState.expandedTagCategories.add(category);
+      }
+
+      const currentCategory = getTagCategoryCollections().find((item) => item.name === category);
+      const hiddenItems = currentCategory?.items.filter((item) => item.count < 4) || [];
+      const shouldResetHiddenActiveTag =
+        isExpanded && hiddenItems.some((item) => item.tag === appState.selectedTag);
+
+      renderTagAtlas({
+        category,
+        tag: shouldResetHiddenActiveTag ? "" : appState.selectedTag,
+      });
+    });
+  });
+};
+
 const animateTagFilterHeight = (fromHeight) => {
   if (!tagFilterNode || !Number.isFinite(fromHeight) || fromHeight <= 0) {
     return;
@@ -1661,11 +1982,15 @@ const renderTagAtlas = ({
   const previousCategory = appState.selectedTagCategory;
   const categoryChanged = previousCategory !== activeCategory;
   const previousFilterHeight = tagFilterNode.getBoundingClientRect().height;
+  const isExpanded = activeCategory
+    ? appState.expandedTagCategories.has(activeCategory) ||
+      Boolean(currentCategory?.items.some((item) => item.tag === activeTag && item.count < 4))
+    : false;
 
   appState.selectedTagCategory = activeCategory;
   appState.selectedTag = activeTag;
 
-  const nextFilterPanelMarkup = renderTagFilterPanel(currentCategory, activeTag);
+  const nextFilterPanelMarkup = renderTagFilterPanel(currentCategory, activeTag, isExpanded);
 
   if (categoryChanged || !tagFilterNode.querySelector(".tag-category-row")) {
     tagFilterNode.innerHTML = `${renderTagCategoryRow(categoryCollections, activeCategory)}${nextFilterPanelMarkup}`;
@@ -1691,6 +2016,7 @@ const renderTagAtlas = ({
     : "";
 
   bindTagFilterButtons();
+  bindTagFilterToggleButtons();
 
   const shouldAnimateFilter = Boolean(currentCategory && categoryChanged);
   const shouldAnimateSummary = false;
@@ -1908,7 +2234,7 @@ const setupAlbumInteractions = (albums) => {
       button.addEventListener("click", () => update(currentIndex + 1, "next"));
     });
 
-    block.querySelectorAll(".album-thumb").forEach((thumb, thumbIndex) => {
+    block.querySelectorAll(".album-thumb:not(.album-thumb-toggle)").forEach((thumb, thumbIndex) => {
       thumb.addEventListener("click", () =>
         update(thumbIndex, thumbIndex < currentIndex ? "prev" : "next")
       );
@@ -2039,6 +2365,7 @@ const renderGallery = (area) => {
 
   renderRegionTimeline(albums);
   setupAlbumInteractions(albums);
+  scheduleAlbumLayoutSync();
 };
 
 const renderCountryPanel = () => {
@@ -2173,6 +2500,9 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
   const maxValue = Math.max(...values, 0);
   const mapLayout = getMapLayout(area);
   const palette = getMapThemePalette();
+  const isMobileMode = isMapPerformanceMode();
+  const shouldShowMapLabel =
+    area.level !== "country" && (!isMobileMode || area.level === "province" || area.level === "city");
 
   appState.chart.setOption(
     {
@@ -2208,8 +2538,8 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
           type: "map",
           map: mapName,
           roam: true,
-          animationDuration: 420,
-          animationDurationUpdate: 420,
+          animationDuration: isMobileMode ? 220 : 420,
+          animationDurationUpdate: isMobileMode ? 180 : 420,
           animationEasing: "cubicOut",
           animationEasingUpdate: "cubicOut",
           layoutCenter: mapLayout.layoutCenter,
@@ -2221,16 +2551,16 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
             max: 12,
           },
           label: {
-            show: appState.currentArea.level !== "country",
+            show: shouldShowMapLabel,
             color: palette.labelColor,
             fontSize: appState.currentArea.level === "district" ? 10 : 11,
           },
           itemStyle: {
             areaColor: palette.areaColor,
             borderColor: palette.borderColor,
-            borderWidth: 1.2,
+            borderWidth: isMobileMode ? 1 : 1.2,
             shadowColor: palette.shadowColor,
-            shadowBlur: 10,
+            shadowBlur: isMobileMode ? 0 : 10,
           },
           emphasis: {
             label: {
@@ -2239,7 +2569,7 @@ const updateChart = (mapName, features, area = appState.currentArea) => {
             itemStyle: {
               areaColor: palette.emphasisAreaColor,
               borderColor: palette.emphasisBorderColor,
-              borderWidth: 1.4,
+              borderWidth: isMobileMode ? 1.1 : 1.4,
             },
           },
           select: {
@@ -2317,6 +2647,9 @@ const loadArea = async (area, options = {}) => {
     const features = geoJSON.features || [];
     const mapName = `china-map-${area.adcode}`;
     const transitionDirection = options.transitionDirection || getTransitionDirection(previousArea, area);
+    const shouldCollapseTagAtlas =
+      options.collapseTagView !== false &&
+      (previousArea.adcode !== area.adcode || previousArea.level !== area.level);
 
     appState.currentArea = area;
     appState.features = features;
@@ -2328,10 +2661,18 @@ const loadArea = async (area, options = {}) => {
     buildFeatureMap(features);
     setAreaLayoutMode(area);
     window.echarts.registerMap(mapName, geoJSON);
+    if (shouldCollapseTagAtlas) {
+      collapseTagAtlasView();
+    }
     renderAreaPanel(area);
     updateChart(mapName, features, area);
     scheduleChartResize();
     animateAreaTransition(transitionDirection);
+    if (options.scrollMode !== "none") {
+      window.requestAnimationFrame(() => {
+        scrollAtlasIntoView({ behavior: options.scrollBehavior || "smooth" });
+      });
+    }
     setStatus(`${area.name} · 已加载 ${features.length} 个区域`);
   } catch (error) {
     setStatus("地图加载失败");
@@ -2361,13 +2702,21 @@ const tryDrillDown = async (featureName) => {
   if (level === "district") {
     const districtArea = { adcode, name, level };
     const transitionDirection = getTransitionDirection(appState.currentArea, districtArea);
+    const shouldCollapseTagAtlas =
+      appState.currentArea.adcode !== districtArea.adcode || appState.currentArea.level !== districtArea.level;
     appState.currentArea = districtArea;
     syncStackForArea(districtArea);
 
+    if (shouldCollapseTagAtlas) {
+      collapseTagAtlasView();
+    }
     renderAreaPanel(districtArea);
     scheduleChartResize();
     animateAreaTransition(transitionDirection);
     appState.chart?.dispatchAction({ type: "select", seriesIndex: 0, name });
+    window.requestAnimationFrame(() => {
+      scrollAtlasIntoView();
+    });
     setStatus(`${name} · 区县层级`);
     return;
   }
@@ -2388,7 +2737,11 @@ const setupChart = () => {
     return;
   }
 
-  appState.chart = window.echarts.init(areaChartNode);
+  const devicePixelRatioCap = isMapPerformanceMode() ? 1.8 : 2.4;
+  appState.chart = window.echarts.init(areaChartNode, null, {
+    useDirtyRect: true,
+    devicePixelRatio: Math.min(window.devicePixelRatio || 1, devicePixelRatioCap),
+  });
   bindChartEvents();
 
   window.addEventListener("resize", () => {
@@ -2491,5 +2844,5 @@ renderTagAtlas();
 setupChart();
 
 if (appState.chart) {
-  loadArea({ adcode: "100000", name: "中国", level: "country" });
+  loadArea({ adcode: "100000", name: "中国", level: "country" }, { scrollMode: "none" });
 }

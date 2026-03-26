@@ -558,6 +558,39 @@ button::-moz-focus-inner {
   gap: 10px;
 }
 
+.tag-filter-toggle-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.tag-filter-toggle {
+  --button-stroke-width: 1px;
+  --button-stroke-color: rgba(53, 88, 106, 0.14);
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.tag-filter-toggle:hover {
+  transform: translateY(-1px);
+  --button-stroke-color: rgba(53, 88, 106, 0.22);
+  color: var(--ink);
+  box-shadow: 0 12px 22px rgba(53, 88, 106, 0.1);
+}
+
 .tag-filter-guide {
   padding: 18px 20px;
   border: 1px dashed rgba(53, 88, 106, 0.16);
@@ -1304,8 +1337,16 @@ button::-moz-focus-inner {
   width: 100%;
 }
 
+.album-thumbs.is-animating-height {
+  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .album-thumb {
   min-width: 0;
+}
+
+.album-thumb.is-thumb-hidden {
+  display: none;
 }
 
 .album-thumb img {
@@ -1319,6 +1360,85 @@ button::-moz-focus-inner {
 .album-thumb.is-active img {
   border-color: var(--accent);
   box-shadow: 0 8px 18px rgba(207, 111, 67, 0.22);
+}
+
+.album-thumb-toggle {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  border: 1px solid rgba(58, 104, 149, 0.28);
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255, 255, 255, 0.9), transparent 52%),
+    linear-gradient(145deg, rgba(236, 246, 252, 0.98), rgba(221, 236, 246, 0.92));
+  color: #2d5f8d;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
+}
+
+.album-thumb-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(58, 104, 149, 0.48);
+  box-shadow: 0 12px 24px rgba(53, 88, 106, 0.2);
+  filter: saturate(1.04);
+}
+
+.album-thumb-toggle-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: linear-gradient(155deg, rgba(86, 137, 186, 0.18), rgba(45, 95, 141, 0.24));
+  box-shadow: inset 0 0 0 1px rgba(45, 95, 141, 0.18);
+}
+
+.album-thumb-toggle-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.album-thumb-toggle-label {
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+.album-thumb-toggle-count {
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: rgba(45, 95, 141, 0.8);
+  font-weight: 600;
+}
+
+.album-thumb-toggle.is-collapse {
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255, 255, 255, 0.86), transparent 52%),
+    linear-gradient(145deg, rgba(243, 245, 248, 0.98), rgba(226, 232, 240, 0.94));
+  border-color: rgba(67, 87, 108, 0.24);
+  color: #3d556d;
+}
+
+.album-thumb-toggle.is-collapse .album-thumb-toggle-icon {
+  background: linear-gradient(155deg, rgba(87, 111, 137, 0.16), rgba(67, 87, 108, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(67, 87, 108, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .album-thumbs.is-animating-height {
+    transition: none;
+  }
+
+
 }
 
 .album-masonry-toggle {
@@ -1692,24 +1812,6 @@ button::-moz-focus-inner {
   }
 }
 
-@keyframes dark-atlas-twinkle {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  45% {
-    opacity: 0.54;
-    transform: translate3d(2px, -3px, 0) scale(1.02);
-  }
-
-  70% {
-    opacity: 0.38;
-    transform: translate3d(-1px, 2px, 0) scale(0.992);
-  }
-}
-
 .reveal {
   opacity: 0;
   transform: translateY(20px);
@@ -1801,66 +1903,29 @@ button::-moz-focus-inner {
     color: var(--ink);
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   .map-stage,
   .region-panel {
     border-color: rgba(240, 246, 252, 0.18);
     background:
       linear-gradient(180deg, rgba(22, 27, 34, 0.44), rgba(13, 17, 23, 0.22)),
       rgba(13, 17, 23, 0.14);
-  }
-
-  .atlas::before,
-  .atlas::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: var(--atlas-frame-gap);
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.42;
-    animation: dark-atlas-twinkle 7.8s ease-in-out infinite;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask-composite: exclude;
-  }
-
-  .atlas::before {
-    background:
-      radial-gradient(circle at 3% 18%, rgba(240, 246, 252, 0.96) 0 1.5px, transparent 2.6px),
-      radial-gradient(circle at 6% 28%, rgba(121, 192, 255, 0.84) 0 1.4px, transparent 2.5px),
-      radial-gradient(circle at 9% 62%, rgba(240, 246, 252, 0.82) 0 1.3px, transparent 2.4px),
-      radial-gradient(circle at 7% 82%, rgba(121, 192, 255, 0.78) 0 1.5px, transparent 2.6px),
-      radial-gradient(circle at 91% 16%, rgba(240, 246, 252, 0.96) 0 1.5px, transparent 2.6px),
-      radial-gradient(circle at 94% 32%, rgba(121, 192, 255, 0.84) 0 1.4px, transparent 2.5px),
-      radial-gradient(circle at 92% 64%, rgba(240, 246, 252, 0.8) 0 1.3px, transparent 2.4px),
-      radial-gradient(circle at 96% 82%, rgba(121, 192, 255, 0.74) 0 1.5px, transparent 2.7px),
-      linear-gradient(122deg, transparent 48.6%, rgba(240, 246, 252, 0.34) 49.4%, rgba(240, 246, 252, 0.34) 50.6%, transparent 51.4%) left 18px top 128px / 138px 92px no-repeat,
-      linear-gradient(70deg, transparent 48.8%, rgba(121, 192, 255, 0.28) 49.6%, rgba(121, 192, 255, 0.28) 50.4%, transparent 51.2%) left 30px top 240px / 96px 110px no-repeat,
-      linear-gradient(112deg, transparent 48.8%, rgba(240, 246, 252, 0.3) 49.6%, rgba(240, 246, 252, 0.3) 50.4%, transparent 51.2%) right 26px top 112px / 144px 96px no-repeat,
-      linear-gradient(62deg, transparent 48.8%, rgba(121, 192, 255, 0.26) 49.6%, rgba(121, 192, 255, 0.26) 50.4%, transparent 51.2%) right 34px top 264px / 108px 116px no-repeat;
-  }
-
-  .atlas::after {
-    background:
-      radial-gradient(circle at 4% 14%, rgba(240, 246, 252, 0.68) 0 1px, transparent 1.8px),
-      radial-gradient(circle at 8% 40%, rgba(121, 192, 255, 0.52) 0 1px, transparent 1.8px),
-      radial-gradient(circle at 10% 92%, rgba(240, 246, 252, 0.54) 0 0.9px, transparent 1.6px),
-      radial-gradient(circle at 90% 12%, rgba(240, 246, 252, 0.66) 0 1px, transparent 1.8px),
-      radial-gradient(circle at 94% 44%, rgba(121, 192, 255, 0.5) 0 1px, transparent 1.8px),
-      radial-gradient(circle at 95% 88%, rgba(240, 246, 252, 0.5) 0 0.9px, transparent 1.6px),
-      linear-gradient(96deg, transparent 49%, rgba(240, 246, 252, 0.18) 49.7%, rgba(240, 246, 252, 0.18) 50.3%, transparent 51%) left 20px bottom 146px / 120px 70px no-repeat,
-      linear-gradient(84deg, transparent 49%, rgba(121, 192, 255, 0.16) 49.7%, rgba(121, 192, 255, 0.16) 50.3%, transparent 51%) right 24px bottom 160px / 128px 72px no-repeat;
-    animation-duration: 10.6s;
-    animation-delay: -3.2s;
-  }
-
-  .atlas-layout {
-    z-index: 1;
   }
 
   .map-stage {
@@ -1920,6 +1985,51 @@ button::-moz-focus-inner {
     background: linear-gradient(135deg, #163a63 0%, #245289 100%);
     color: #f0f6fc;
     box-shadow: 0 14px 32px rgba(2, 8, 13, 0.24);
+  }
+
+  .album-thumb-toggle {
+    border-color: rgba(165, 214, 255, 0.28);
+    background:
+      radial-gradient(circle at 24% 22%, rgba(165, 214, 255, 0.14), transparent 56%),
+      linear-gradient(145deg, rgba(25, 34, 46, 0.96), rgba(16, 24, 34, 0.94));
+    color: #cfe6ff;
+    box-shadow:
+      inset 0 1px 0 rgba(240, 246, 252, 0.06),
+      0 8px 18px rgba(2, 8, 13, 0.24);
+  }
+
+  .album-thumb-toggle:hover {
+    border-color: rgba(121, 192, 255, 0.54);
+    box-shadow:
+      inset 0 1px 0 rgba(240, 246, 252, 0.08),
+      0 14px 24px rgba(2, 8, 13, 0.3);
+    filter: none;
+  }
+
+  .album-thumb-toggle-icon {
+    background: linear-gradient(160deg, rgba(88, 166, 255, 0.24), rgba(36, 82, 137, 0.34));
+    box-shadow:
+      inset 0 0 0 1px rgba(121, 192, 255, 0.2),
+      0 4px 10px rgba(2, 8, 13, 0.24);
+  }
+
+  .album-thumb-toggle-count {
+    color: rgba(194, 226, 255, 0.86);
+  }
+
+  .album-thumb-toggle.is-collapse {
+    border-color: rgba(139, 148, 158, 0.28);
+    background:
+      radial-gradient(circle at 24% 22%, rgba(139, 148, 158, 0.12), transparent 56%),
+      linear-gradient(145deg, rgba(26, 31, 39, 0.96), rgba(18, 23, 31, 0.94));
+    color: #c0cad6;
+  }
+
+  .album-thumb-toggle.is-collapse .album-thumb-toggle-icon {
+    background: linear-gradient(160deg, rgba(139, 148, 158, 0.2), rgba(83, 98, 116, 0.3));
+    box-shadow:
+      inset 0 0 0 1px rgba(184, 195, 208, 0.18),
+      0 4px 10px rgba(2, 8, 13, 0.24);
   }
 
   .tag-chip {
@@ -2023,6 +2133,9 @@ button::-moz-focus-inner {
     display: none;
   }
 
+
+
+
   .tag-photo-grid {
     columns: 3 210px;
   }
@@ -2083,6 +2196,25 @@ button::-moz-focus-inner {
   .section-heading {
     margin-bottom: 14px;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   .tag-atlas-intro {
     max-width: none;
