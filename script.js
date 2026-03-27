@@ -2008,7 +2008,7 @@ const renderTagPhotoCard = (photo, index) => `
 `;
 
 const renderTagPhotoStream = (photos) => `
-  <div class="tag-photo-grid">
+  <div class="tag-photo-grid ${photos.length <= 3 ? `is-compact is-compact-${photos.length}` : ""}">
     ${photos.map((photo, index) => renderTagPhotoCard(photo, index)).join("")}
   </div>
 `;
