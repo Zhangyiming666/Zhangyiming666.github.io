@@ -83,6 +83,7 @@ const appState = {
   tagAtlasDataRequested: false,
   hasWarmedCatalogChunks: false,
   normalizedAlbumCacheByArea: new Map(),
+  preloadedDisplayImages: new Set(),
 };
 
 const geoJSONCache = new Map();
@@ -374,6 +375,57 @@ const getPhotoVariantSrc = (src, variant = "display") => {
   }
 
   return normalizedSrc;
+};
+
+const preloadDisplayImage = (src) => {
+  const displaySrc = getPhotoVariantSrc(src, "display");
+
+  if (!displaySrc || displaySrc.endsWith(".svg")) {
+    return;
+  }
+
+  if (appState.preloadedDisplayImages.has(displaySrc)) {
+    return;
+  }
+
+  appState.preloadedDisplayImages.add(displaySrc);
+
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = displaySrc;
+  } catch (error) {
+    // Ignore preload failure; rendering path still works.
+  }
+};
+
+const warmAlbumDisplayImages = (album, centerIndex = 0) => {
+  const photos = Array.isArray(album?.photos) ? album.photos : [];
+
+  if (!photos.length) {
+    return;
+  }
+
+  const normalizedIndex = ((centerIndex % photos.length) + photos.length) % photos.length;
+  const preloadOrder = [
+    normalizedIndex,
+    normalizedIndex + 1,
+    normalizedIndex - 1,
+    normalizedIndex + 2,
+    normalizedIndex - 2,
+  ];
+  const visited = new Set();
+
+  preloadOrder.forEach((rawIndex) => {
+    const wrappedIndex = ((rawIndex % photos.length) + photos.length) % photos.length;
+
+    if (visited.has(wrappedIndex)) {
+      return;
+    }
+
+    visited.add(wrappedIndex);
+    preloadDisplayImage(photos[wrappedIndex]?.src);
+  });
 };
 
 const buildImageSrcSet = (src) => {
@@ -2631,6 +2683,7 @@ const setupAlbumInteractions = (albums, { startIndex = 0 } = {}) => {
     const masonry = block.querySelector(".album-masonry");
     const update = (nextIndex, direction = "next") => {
       currentIndex = (nextIndex + album.photos.length) % album.photos.length;
+      warmAlbumDisplayImages(album, currentIndex);
       syncAlbumCarousel(albumIndex, album, currentIndex);
       animateAlbumSlide(block, direction);
     };
@@ -2666,6 +2719,7 @@ const setupAlbumInteractions = (albums, { startIndex = 0 } = {}) => {
     });
 
     mainButton?.addEventListener("click", () => openLightbox(mainButton));
+    warmAlbumDisplayImages(album, 0);
     update(0);
   });
 
