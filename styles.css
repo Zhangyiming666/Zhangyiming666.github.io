@@ -45,6 +45,20 @@ img {
   max-width: 100%;
 }
 
+.tag-photo-visual picture,
+.album-main-button picture,
+.album-thumb picture,
+.country-quick-card picture,
+.masonry-tile picture {
+  display: block;
+  width: 100%;
+}
+
+.album-main-button picture {
+  display: grid;
+  place-items: center;
+}
+
 a {
   color: inherit;
   text-decoration: none;

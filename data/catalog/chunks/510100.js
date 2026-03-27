@@ -1,0 +1,2 @@
+window.photoCatalogChunkPayload = window.photoCatalogChunkPayload || {};
+window.photoCatalogChunkPayload["510100"] = [{"title": "成都", "meta": "", "description": "", "images": ["./assets/photos/after-rain.svg", "./assets/photos/red-bus-stop.svg", "./assets/photos/moon-market.svg", "./assets/photos/quiet-platform.svg", "./assets/photos/atelier-window.svg"]}];
