@@ -102,7 +102,8 @@ const themeMediaQuery =
     ? window.matchMedia("(prefers-color-scheme: dark)")
     : null;
 const ENABLE_DESKTOP_MAP_PERFORMANCE_MODE = true;
-const STORY_TRACK_REPEATS = 5;
+const STORY_TRACK_REPEATS = 3;
+const STORY_COVER_MAX_ITEMS = 30;
 
 const STORY_ROW_SETTINGS = [
   { speed: -0.7, lift: -34 },
@@ -632,7 +633,7 @@ const isMapPerformanceMode = () =>
   isMobilePerformanceMode() || ENABLE_DESKTOP_MAP_PERFORMANCE_MODE;
 
 const getStoryCoverAsset = (src) =>
-  String(src || "").replace("./assets/photos/", "./assets/photos/story-cover/");
+  String(src || "").replace("./assets/photos/", "./assets/photos/thumb/");
 
 const getFeatureAdcode = (feature) =>
   normalizeAdcode(
@@ -906,7 +907,7 @@ const getStoryCoverPhotos = () => {
   }
 
   const photoMap = new Map(getAllRealPhotos().map((photo) => [photo.src, photo]));
-  appState.storyCoverPhotos = STORY_COVER_SOURCES.map((src, index) => {
+  appState.storyCoverPhotos = STORY_COVER_SOURCES.slice(0, STORY_COVER_MAX_ITEMS).map((src, index) => {
     const photo = photoMap.get(src) || { src, alt: `首页照片流 ${index + 1}` };
 
     return {
