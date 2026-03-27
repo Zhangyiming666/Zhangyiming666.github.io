@@ -1642,7 +1642,7 @@ const scheduleChartResize = () => {
 const getMapLayout = (area) => {
   if (area.level === "country") {
     return {
-      layoutCenter: ["50%", "47.5%"],
+      layoutCenter: ["50%", "65%"],
       layoutSize: "112%",
     };
   }
