@@ -181,6 +181,7 @@ button::-moz-focus-inner {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
   box-shadow: var(--shadow);
   overflow: visible;
@@ -317,6 +318,7 @@ button::-moz-focus-inner {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)),
     rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
   backdrop-filter: blur(30px) saturate(170%);
   box-shadow:
     0 30px 60px rgba(20, 34, 43, 0.08),
