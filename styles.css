@@ -131,6 +131,7 @@ button::-moz-focus-inner {
 }
 
 .page-shell {
+  --page-shell-pad-top: 24px;
   width: min(100%, var(--content-width));
   margin: 0 auto;
   padding: 24px 16px 32px;
@@ -194,6 +195,7 @@ button::-moz-focus-inner {
 .story-cover {
   position: relative;
   width: 100vw;
+  margin-top: calc(var(--page-shell-pad-top) * -1);
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   margin-bottom: 28px;
@@ -2188,6 +2190,7 @@ button::-moz-focus-inner {
 
 @media (max-width: 760px) {
   .page-shell {
+    --page-shell-pad-top: 8px;
     width: 100%;
     padding: 8px 8px 14px;
   }
