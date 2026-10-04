@@ -84,7 +84,7 @@
     .deliverables[data-theme-custom] .output-card { border-color: color-mix(in srgb, var(--output-color), white 30%); background: color-mix(in srgb, var(--output-color), white 90%); }
     .canvas[data-radius-custom] :is(.sidebar, .sidebar-title, .side-card, .core-question, .phase, .phase-heading, .phase-card, .recommendation, .deliverables, .deliverables h2, .output-card) { border-radius: var(--radius); }
     .canvas[data-radius-custom] .number { border-radius: calc(var(--radius) * 2.625); }
-    .controls { width: 320px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 22px; background: #fff; border: 1px solid #dfe5ee; border-radius: 16px; box-shadow: 0 8px 30px #173b7008; align-self: center; }
+    .controls { width: 320px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 22px; background: #fff; border: 1px solid #dfe5ee; border-radius: 8px; box-shadow: 0 8px 30px #173b7008; align-self: center; }
     .controls h2 { font-size: 20px; font-weight: 700; color: #182841; }
     .controls .intro { font-size: 12px; color: #8692a4; margin: 5px 0 22px; }
     .control-group { border: 0; padding: 0; margin: 0 0 22px; }
@@ -325,7 +325,6 @@
     <button type="button" class="reset-button" id="reset-settings">恢复参考版默认样式</button>
     </section>
     <button type="button" class="reset-button download-button" id="download-html">下载当前 HTML</button>
-    <p class="save-note" id="save-note">修改自动保存在当前浏览器；完成后点击“下载当前 HTML”，将文件发给组员。各人的修改不会自动同步。</p>
   </aside>
   </div>
   <script type="application/json" id="embedded-state">{}</script>
@@ -394,7 +393,7 @@
     }
     function persist() {
       try { localStorage.setItem(storageKey, JSON.stringify(settings)); }
-      catch { document.querySelector('#save-note').textContent = '设置已生效，当前浏览器无法自动保存'; }
+      catch { document.querySelector('#download-html').title = '设置已生效，当前浏览器无法自动保存'; }
     }
     document.querySelectorAll('[data-setting]').forEach(input => input.addEventListener('input', () => {
       settings[input.dataset.setting] = input.dataset.setting === 'radius' ? Number(input.value) : input.value;
@@ -457,7 +456,7 @@
     }
     function saveEdits() {
       try { localStorage.setItem(editStorageKey, JSON.stringify(edits)); }
-      catch { document.querySelector('#save-note').textContent = '请下载 HTML 保存当前设置'; }
+      catch { document.querySelector('#download-html').title = '请下载 HTML 保存当前设置'; }
     }
     function hexColor(value, fallback = '#ffffff') {
       const swatch = document.createElement('canvas'); swatch.width = swatch.height = 1;
