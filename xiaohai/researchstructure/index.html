@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>“小海”智能体银发市场研究架构</title>
+  <style>
+    :root { color-scheme: light; --navy: #071f56; --blue: #397cc6; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; }
+    body { background: #eef2f6; font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; color: var(--navy); }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; padding: 24px; min-height: 100dvh; align-items: center; }
+    .preview-area { display: grid; place-items: center; min-width: 0; }
+    .viewport { position: relative; width: min(100%, calc((100dvh - 48px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #fff; box-shadow: 0 8px 36px #173b7010; }
+    .canvas { position: absolute; width: 1600px; height: 900px; transform-origin: top left; background: radial-gradient(ellipse at 50% 40%, #fff 45%, #fcfdff 100%); }
+    h1, h2, h3, p { margin: 0; }
+    h1 { position: absolute; top: 10px; left: 0; width: 100%; text-align: center; font-size: 43px; line-height: 58px; letter-spacing: 1px; font-weight: 800; }
+    .sidebar { position: absolute; top: 66px; width: 306px; height: 684px; border: 1.2px dashed #569bff; border-radius: 9px; background: linear-gradient(105deg, #edf7ff, #eff8ff); }
+    .sidebar.left { left: 24px; }
+    .sidebar.right { left: 1271px; }
+    .sidebar-title { position: absolute; left: 8px; right: 8px; top: 7px; height: 51px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(110deg, #397ac0, #497db7); color: white; font-size: 27px; font-weight: 750; }
+    .side-card { position: absolute; left: 14px; width: 267px; border: 1.3px solid #438cff; border-radius: 8px; background: linear-gradient(115deg, #f2faff, #eff7ff); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .side-card h3 { font-size: 26px; line-height: 35px; font-weight: 750; }
+    .side-card p { margin-top: 2px; font-size: 20px; line-height: 25px; color: #173b70; }
+    .left .side-card:nth-of-type(1) { top: 76px; height: 108px; }
+    .left .side-card:nth-of-type(2) { top: 231px; height: 116px; }
+    .left .side-card:nth-of-type(3) { top: 393px; height: 115px; }
+    .left .side-card:nth-of-type(4) { top: 552px; height: 114px; }
+    .right .side-card { left: 30px; width: 265px; }
+    .right .side-card:nth-of-type(1) { top: 72px; height: 97px; }
+    .right .side-card:nth-of-type(2) { top: 198px; height: 100px; }
+    .right .side-card:nth-of-type(3) { top: 327px; height: 102px; }
+    .right .side-card:nth-of-type(4) { top: 457px; height: 93px; }
+    .right .side-card:nth-of-type(5) { top: 577px; height: 99px; }
+    .core-question { position: absolute; left: 352px; top: 83px; width: 898px; height: 65px; border: 1.5px solid #2468c2; border-radius: 7px; background: linear-gradient(110deg, #d3eaff, #d5eaff); box-shadow: inset 0 0 0 3px #edf6ff; display: grid; place-items: center; font-size: 27px; font-weight: 750; letter-spacing: .5px; }
+    .phase { position: absolute; left: 361px; width: 882px; border: 1.2px dashed; border-radius: 9px; }
+    .phase.one { top: 170px; height: 156px; border-color: #ff869c; background: #fff7f8; color: #b00d35; }
+    .phase.two { top: 350px; height: 215px; border-color: #ffb339; background: #fffcf3; color: #111a1d; }
+    .phase.three { top: 588px; height: 150px; border-color: #76baff; background: #f3faff; }
+    .phase-heading { position: absolute; top: 11px; left: 13px; height: 44px; width: 855px; border-radius: 9px; display: flex; align-items: center; gap: 21px; padding-left: 13px; font-size: 26px; font-weight: 750; }
+    .one .phase-heading { background: linear-gradient(110deg, #ffe8ee, #fde4e9); }
+    .two .phase-heading { width: 804px; background: linear-gradient(110deg, #fff4d6, #fcf3d8); color: #834008; }
+    .three .phase-heading { width: 804px; background: linear-gradient(110deg, #e1f3ff, #ddf0ff); }
+    .number { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; color: white; font-size: 27px; font-weight: 750; }
+    .one .number { background: linear-gradient(100deg, #ee7591, #fa6183); }
+    .two .number { background: linear-gradient(100deg, #f4b600, #df9200); }
+    .three .number { background: linear-gradient(100deg, #64a6ed, #3889df); }
+    .phase-card { position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; border: 1px solid; border-radius: 6px; font-size: 22px; line-height: 27px; font-weight: 650; }
+    .one .phase-card { top: 64px; width: 199px; height: 76px; border-color: #ff8ca4; background: linear-gradient(115deg, #ffe8ec, #fce5e9); }
+    .one .phase-card:nth-of-type(1) { left: 21px; }
+    .one .phase-card:nth-of-type(2) { left: 234px; }
+    .one .phase-card:nth-of-type(3) { left: 447px; }
+    .one .phase-card:nth-of-type(4) { left: 660px; }
+    .two .phase-card { top: 68px; height: 78px; border-color: #ed9c00; background: linear-gradient(115deg, #fff4d4, #fdf1d2); }
+    .two .phase-card:nth-of-type(1) { left: 24px; width: 173px; }
+    .two .phase-card:nth-of-type(2) { left: 232px; width: 170px; }
+    .two .phase-card:nth-of-type(3) { left: 434px; width: 175px; }
+    .two .phase-card:nth-of-type(4) { left: 642px; width: 176px; }
+    .recommendation { position: absolute; left: 24px; top: 157px; width: 794px; height: 42px; border: 1px solid #ffc147; border-radius: 5px; background: linear-gradient(110deg, #fff4d5, #fcf2d5); text-align: center; font-size: 22px; line-height: 40px; font-weight: 650; }
+    .three .phase-card { top: 66px; height: 56px; border-color: #3e91f9; background: linear-gradient(110deg, #dcefff, #d5eaff); }
+    .three .phase-card:nth-of-type(1) { left: 24px; width: 180px; }
+    .three .phase-card:nth-of-type(2) { left: 237px; width: 169px; }
+    .three .phase-card:nth-of-type(3) { left: 440px; width: 170px; }
+    .three .phase-card:nth-of-type(4) { left: 643px; width: 174px; }
+    .connections { position: absolute; inset: 0; width: 1600px; height: 900px; pointer-events: none; }
+    .feedback-label { position: absolute; left: 1184px; top: 513px; padding: 0 7px; line-height: 30px; background: #fffcf3; font-size: 21px; font-weight: 700; white-space: nowrap; }
+    .deliverables { position: absolute; left: 29px; top: 768px; width: 1543px; height: 124px; border: 1.2px dashed #73c485; border-radius: 9px; background: #fcfefb; }
+    .deliverables h2 { position: absolute; left: 12px; top: 5px; width: 1519px; height: 40px; border-radius: 6px; background: linear-gradient(110deg, #47a471, #4ca873); text-align: center; color: #fff; font-size: 25px; line-height: 40px; letter-spacing: 2px; font-weight: 750; }
+    .output-grid { position: absolute; top: 51px; left: 24px; right: 24px; height: 63px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 19px; }
+    .output-card { border: 1px solid #84c58f; border-radius: 6px; background: linear-gradient(110deg, #eaf6ed, #edf7ec); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    .output-card h3 { font-size: 22px; line-height: 28px; font-weight: 750; }
+    .output-card p { font-size: 18px; line-height: 25px; color: #234c5a; }
+    /* 主题色同时控制标题、卡片、描边和浅色背景。 */
+    .phase.one { --theme: var(--phase-one); }
+    .phase.two { --theme: var(--phase-two); }
+    .phase.three { --theme: var(--phase-three); }
+    .phase[data-theme-custom] { border-color: color-mix(in srgb, var(--theme), white 25%); background: color-mix(in srgb, var(--theme), white 95%); color: color-mix(in srgb, var(--theme), black 55%); }
+    .phase[data-theme-custom] .phase-heading { background: color-mix(in srgb, var(--theme), white 84%); color: color-mix(in srgb, var(--theme), black 55%); }
+    .phase[data-theme-custom] .number { background: var(--theme); color: var(--badge-ink, white); }
+    .phase[data-theme-custom] .phase-card, .phase[data-theme-custom] .recommendation { border-color: var(--theme); background: color-mix(in srgb, var(--theme), white 87%); }
+    .canvas[data-phase-two-custom] .feedback-label { background: color-mix(in srgb, var(--phase-two), white 95%); }
+    .deliverables[data-theme-custom] { border-color: color-mix(in srgb, var(--output-color), white 25%); background: color-mix(in srgb, var(--output-color), white 98%); }
+    .deliverables[data-theme-custom] h2 { background: var(--output-color); color: var(--output-heading-ink, white); }
+    .deliverables[data-theme-custom] .output-card { border-color: color-mix(in srgb, var(--output-color), white 30%); background: color-mix(in srgb, var(--output-color), white 90%); }
+    .canvas[data-radius-custom] :is(.sidebar, .sidebar-title, .side-card, .core-question, .phase, .phase-heading, .phase-card, .recommendation, .deliverables, .deliverables h2, .output-card) { border-radius: var(--radius); }
+    .canvas[data-radius-custom] .number { border-radius: calc(var(--radius) * 2.625); }
+    .controls { width: 320px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 22px; background: #fff; border: 1px solid #dfe5ee; border-radius: 8px; box-shadow: 0 8px 30px #173b7008; align-self: center; }
+    .controls h2 { font-size: 20px; font-weight: 700; color: #182841; }
+    .controls .intro { font-size: 12px; color: #8692a4; margin: 5px 0 22px; }
+    .control-group { border: 0; padding: 0; margin: 0 0 22px; }
+    .control-group legend { font-size: 12px; font-weight: 600; color: #8290a3; margin-bottom: 10px; }
+    .color-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 13px 0; }
+    .color-row label { font-size: 13px; color: #34435b; }
+    .color-value { display: flex; align-items: center; gap: 9px; }
+    .color-value output { width: 58px; font-family: ui-monospace, monospace; font-size: 11px; color: #8390a1; text-transform: uppercase; }
+    input[type="color"] { width: 30px; height: 30px; border: 1px solid #e1e6ed; padding: 3px; border-radius: 7px; background: #fff; cursor: pointer; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
+    .radius-label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #34435b; margin-bottom: 12px; }
+    .radius-label output { color: #3d7bc3; font-size: 12px; font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; margin: 0; accent-color: #3d7bc3; cursor: pointer; }
+    .range-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #99a3b2; }
+    .reset-button { width: 100%; border: 1px solid #dce4ef; background: #f8fafc; color: #465973; border-radius: 8px; padding: 10px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .reset-button:hover { background: #edf4fc; border-color: #9ebfe6; }
+    input:focus-visible, button:focus-visible { outline: 2px solid #397cc6; outline-offset: 3px; }
+    .save-note { font-size: 11px; text-align: center; color: #99a3b2; margin-top: 12px; }
+    .editor-tabs { display: flex; gap: 4px; padding: 4px; background: #eff3f8; border-radius: 9px; margin-bottom: 18px; }
+    .editor-tabs button { flex: 1; border: 0; background: transparent; color: #708098; border-radius: 6px; padding: 8px; cursor: pointer; font: 13px inherit; }
+    .editor-tabs button[aria-selected="true"] { background: white; color: #2468c2; box-shadow: 0 1px 4px #173b7015; }
+    [hidden] { display: none !important; }
+    .canvas [data-edit-id] { cursor: pointer; }
+    .canvas [data-edit-id]:hover { outline: 1px dashed #7b9fce; outline-offset: 2px; }
+    .canvas .is-selected { outline: 2px solid #7954ef !important; outline-offset: 3px; }
+    .connections use, .connections > path { pointer-events: visiblePainted; }
+    .connections .is-selected { filter: drop-shadow(0 0 3px #7954ef); }
+    .inspector-note { font-size: 12px; line-height: 1.7; color: #8090a5; margin-bottom: 12px; }
+    .inspector-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 12px; color: #53647b; }
+    .inspector-field input:not([type="color"]), .inspector-field select, .inspector-field textarea, #element-picker { width: 100%; padding: 8px; border: 1px solid #dce4ef; border-radius: 6px; font: 12px "PingFang SC", sans-serif; background: white; color: #263b58; min-width: 0; }
+    .inspector-field textarea { resize: vertical; min-height: 65px; line-height: 1.6; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .inspector-divider { border: 0; border-top: 1px solid #e8edf4; margin: 16px 0; }
+    .action-row { display: flex; gap: 8px; margin: 12px 0; }
+    .action-row button { flex: 1; }
+    .download-button { margin-top: 12px; background: #2f70bf; color: white; border-color: #2f70bf; }
+    .download-button:hover { background: #245fa6; color: white; }
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; gap: 18px; padding: 16px; align-content: center; }
+      .viewport { width: 100%; }
+      .controls { width: min(100%, 520px); max-height: none; justify-self: center; }
+    }
+    @media print {
+      @page { size: 16in 9in; margin: 0; }
+      html, body { width: 16in; height: 9in; background: #fff; }
+      .workspace { display: block; padding: 0; min-height: 0; }
+      .controls { display: none; }
+      .canvas [data-edit-id] { outline: none !important; filter: none !important; }
+      .viewport { width: 16in; height: 9in; box-shadow: none; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="workspace">
+  <div class="preview-area">
+  <main class="viewport" aria-label="小海智能体银发市场研究架构图">
+    <div class="canvas">
+      <h1>“小海” 智能体银发市场研究架构</h1>
+
+      <section class="sidebar left" aria-labelledby="process-title">
+        <h2 class="sidebar-title" id="process-title">研究流程</h2>
+        <article class="side-card"><h3>企业问题识别</h3><p>明确企业战略目标<br>与核心问题</p></article>
+        <article class="side-card"><h3>目标客群识别</h3><p>锁定银发人群特征<br>与细分群体</p></article>
+        <article class="side-card"><h3>产品概念验证</h3><p>验证产品价值主张<br>与核心功能</p></article>
+        <article class="side-card"><h3>服务转化验证</h3><p>评估商业化潜力<br>与可持续性</p></article>
+      </section>
+
+      <div class="core-question">核心研究问题：小海如何成为银发家庭端的康养入口？</div>
+
+      <section class="phase one" aria-labelledby="phase-one">
+        <h2 class="phase-heading" id="phase-one"><span class="number">1</span>前期洞察与问题定义</h2>
+        <div class="phase-card">企业需求与<br>产品定位</div>
+        <div class="phase-card">行业环境与<br>银发趋势</div>
+        <div class="phase-card">用户痛点与<br>使用场景</div>
+        <div class="phase-card">竞品与<br>案例借鉴</div>
+      </section>
+
+      <section class="phase two" aria-labelledby="phase-two">
+        <h2 class="phase-heading" id="phase-two"><span class="number">2</span>上市前研究</h2>
+        <div class="phase-card">高潜客群<br>识别</div>
+        <div class="phase-card">基础需求<br>洞察</div>
+        <div class="phase-card">产品功能 /<br>场景测试</div>
+        <div class="phase-card">价格与接入<br>方式验证</div>
+        <p class="recommendation">形成上市前产品与推广建议</p>
+      </section>
+
+      <section class="phase three" aria-labelledby="phase-three">
+        <h2 class="phase-heading" id="phase-three"><span class="number">3</span>上市后验证</h2>
+        <div class="phase-card">使用情况</div>
+        <div class="phase-card">满意度</div>
+        <div class="phase-card">留存情况</div>
+        <div class="phase-card">康养服务转化</div>
+      </section>
+
+      <section class="sidebar right" aria-labelledby="support-title">
+        <h2 class="sidebar-title" id="support-title">研究支撑</h2>
+        <article class="side-card"><h3>企业访谈</h3><p>深入了解企业战略<br>与业务现状</p></article>
+        <article class="side-card"><h3>案头研究</h3><p>政策、行业、市场<br>及竞品资料研究</p></article>
+        <article class="side-card"><h3>问卷调研</h3><p>获取银发人群需求<br>与行为数据</p></article>
+        <article class="side-card"><h3>定量分析</h3><p>数据建模与量化验证</p></article>
+        <article class="side-card"><h3>上市后回访</h3><p>追踪用户使用体验<br>与服务转化效果</p></article>
+      </section>
+
+      <svg class="connections" viewBox="0 0 1600 900" aria-hidden="true">
+        <defs>
+          <linearGradient id="arrow-gradient"><stop stop-color="#acd4f3"/><stop offset="1" stop-color="#3e79be"/></linearGradient>
+          <linearGradient id="down-gradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a4c8ea"/><stop offset="1" stop-color="#3d76bb"/></linearGradient>
+          <symbol id="arrow-right" viewBox="0 0 50 28"><path d="M0 7H33V0L50 14 33 28V21H0Z" fill="url(#arrow-gradient)"/></symbol>
+          <symbol id="arrow-left" viewBox="0 0 50 28"><path d="M50 7H17V0L0 14 17 28V21H50Z" fill="url(#arrow-gradient)"/></symbol>
+          <symbol id="arrow-down" viewBox="0 0 32 35"><path d="M9 0H23V19H32L16 35 0 19H9Z" fill="url(#down-gradient)"/></symbol>
+        </defs>
+        <!-- 研究流程与三个研究阶段的对应关系 -->
+        <use href="#arrow-right" x="306" y="187" width="49" height="28"/>
+        <use href="#arrow-right" x="306" y="342" width="49" height="28"/>
+        <use href="#arrow-right" x="306" y="497" width="49" height="28"/>
+        <use href="#arrow-right" x="306" y="660" width="49" height="28"/>
+        <use href="#arrow-down" x="167" y="251" width="25" height="47"/>
+        <use href="#arrow-down" x="167" y="414" width="25" height="44"/>
+        <use href="#arrow-down" x="167" y="574" width="25" height="41"/>
+        <!-- 核心研究问题、三个阶段与输出成果 -->
+        <use href="#arrow-down" x="784" y="148" width="32" height="32"/>
+        <use href="#arrow-down" x="784" y="326" width="32" height="33"/>
+        <use href="#arrow-down" x="784" y="565" width="32" height="33"/>
+        <use href="#arrow-down" x="784" y="738" width="32" height="34"/>
+        <!-- 上市前研究内部流程 -->
+        <use href="#arrow-right" x="558" y="445" width="34" height="23"/>
+        <use href="#arrow-right" x="763" y="445" width="32" height="23"/>
+        <use href="#arrow-right" x="970" y="445" width="33" height="23"/>
+        <!-- 上市后验证内部流程 -->
+        <use href="#arrow-right" x="565" y="673" width="32" height="20"/>
+        <use href="#arrow-right" x="767" y="673" width="33" height="20"/>
+        <use href="#arrow-right" x="971" y="673" width="32" height="20"/>
+        <!-- 研究支撑与阶段的对应关系 -->
+        <use href="#arrow-left" x="1249" y="179" width="52" height="28"/>
+        <use href="#arrow-left" x="1249" y="299" width="52" height="28"/>
+        <use href="#arrow-left" x="1249" y="429" width="52" height="28"/>
+        <use href="#arrow-left" x="1249" y="558" width="52" height="28"/>
+        <use href="#arrow-left" x="1249" y="672" width="52" height="28"/>
+        <use href="#arrow-down" x="1424" y="235" width="22" height="29"/>
+        <use href="#arrow-down" x="1424" y="364" width="22" height="28"/>
+        <use href="#arrow-down" x="1424" y="495" width="22" height="27"/>
+        <use href="#arrow-down" x="1424" y="616" width="22" height="27"/>
+        <!-- 上市后结果回流至上市前方案，形成反馈优化闭环 -->
+        <path d="M1188 683H1220V439H1197" fill="none" stroke="#417dc0" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M1185 439L1203 427V451Z" fill="#417dc0"/>
+      </svg>
+      <span class="feedback-label">反馈优化</span>
+
+      <section class="deliverables" aria-labelledby="deliverables-title">
+        <h2 id="deliverables-title">输出成果</h2>
+        <div class="output-grid">
+          <article class="output-card"><h3>目标人群策略</h3><p>银发人群细分与核心客群画像</p></article>
+          <article class="output-card"><h3>产品方向建议</h3><p>功能优化与场景拓展思路</p></article>
+          <article class="output-card"><h3>定价与推广建议</h3><p>定价策略与多渠道推广方案</p></article>
+          <article class="output-card"><h3>服务转化路径</h3><p>从用户使用到康养服务的落地路径</p></article>
+        </div>
+      </section>
+    </div>
+  </main>
+  </div>
+  <aside class="controls" aria-labelledby="settings-title">
+    <h2 id="settings-title">样式设置</h2>
+    <p class="intro">点击画布中的组件，即可单独编辑</p>
+    <div class="editor-tabs" role="tablist" aria-label="编辑模式"><button type="button" id="component-tab" role="tab" aria-selected="true" aria-controls="component-panel">组件编辑</button><button type="button" id="global-tab" role="tab" aria-selected="false" aria-controls="global-panel">全局样式</button></div>
+    <section id="component-panel" role="tabpanel" aria-labelledby="component-tab">
+      <p class="inspector-note">点击文字、卡片、背景或箭头。也可从下方列表选择组件；“选择外层”可编辑文字所在的框。</p>
+      <label class="inspector-field">当前组件<select id="element-picker" aria-label="选择组件"></select></label>
+      <div class="action-row"><button class="reset-button" id="select-parent" type="button">选择外层</button><button class="reset-button" id="reset-element" type="button">重置此组件</button></div>
+      <div id="inspector-fields">
+        <label class="inspector-field" id="text-field">文字内容<textarea id="edit-text" aria-label="文字内容"></textarea></label>
+        <div id="background-fields">
+          <label class="inspector-field">背景样式<select id="edit-background-mode"><option value="solid">纯色</option><option value="gradient">渐变</option><option value="transparent">透明</option></select></label>
+          <div class="color-row"><label for="edit-background">背景颜色 / 渐变起点</label><input id="edit-background" type="color"></div>
+          <div class="color-row" id="gradient-end-row"><label for="edit-background-end">渐变终点</label><input id="edit-background-end" type="color"></div>
+        </div>
+        <div class="color-row"><label id="foreground-label" for="edit-color">文字颜色</label><input id="edit-color" type="color"></div>
+        <div id="border-fields">
+          <div class="color-row"><label for="edit-border-color">边框颜色</label><input id="edit-border-color" type="color"></div>
+          <div class="color-row"><label for="edit-shadow-color">阴影 / 内侧描边颜色</label><input id="edit-shadow-color" type="color"></div>
+          <label class="inspector-field">阴影样式<select id="edit-shadow-mode"><option value="none">无阴影</option><option value="outer">外侧阴影</option><option value="inner">内侧描边</option></select></label>
+          <div class="field-grid">
+            <label class="inspector-field">边框宽度（px）<input id="edit-border-width" type="number" min="0" max="30" step="0.5"></label>
+            <label class="inspector-field">边框样式<select id="edit-border-style"><option value="none">无边框</option><option value="solid">实线</option><option value="dashed">虚线</option><option value="dotted">点线</option></select></label>
+            <label class="inspector-field">圆角（px）<input id="edit-radius" type="number" min="0" max="500"></label>
+            <label class="inspector-field">透明度（%）<input id="edit-opacity" type="number" min="0" max="100"></label>
+          </div>
+        </div>
+        <div id="font-family-fields">
+          <label class="inspector-field">字体<select id="edit-font-family"><option value="inherit">继承外层字体</option><option value="PingFang SC">苹方</option><option value="Microsoft YaHei">微软雅黑</option><option value="Songti SC">宋体</option><option value="Heiti SC">黑体</option><option value="Kaiti SC">楷体</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="custom">自定义字体</option></select></label>
+          <label class="inspector-field" id="custom-font-field" hidden>自定义字体名称<input id="edit-custom-font" type="text" placeholder="例如：Noto Sans CJK SC"></label>
+          <p class="inspector-note">字体需已安装在你的电脑上。选择外层组件可统一修改其内部文字。</p>
+        </div>
+        <div id="typography-fields" class="field-grid">
+          <label class="inspector-field">字号（px）<input id="edit-font-size" type="number" min="8" max="120"></label>
+          <label class="inspector-field">字重<select id="edit-font-weight"><option value="400">常规</option><option value="500">中等</option><option value="600">半粗</option><option value="700">粗体</option><option value="800">特粗</option></select></label>
+          <label class="inspector-field">文字对齐<select id="edit-text-align"><option value="left">左对齐</option><option value="center">居中</option><option value="right">右对齐</option></select></label>
+          <label class="inspector-field">行高（px）<input id="edit-line-height" type="number" min="8" max="200"></label>
+        </div>
+        <div id="padding-fields">
+          <hr class="inspector-divider">
+          <p class="inspector-note">文字与边框间距（内边距）</p>
+          <div class="field-grid">
+            <label class="inspector-field">上（px）<input id="edit-padding-top" type="number" min="0" max="300"></label>
+            <label class="inspector-field">右（px）<input id="edit-padding-right" type="number" min="0" max="300"></label>
+            <label class="inspector-field">下（px）<input id="edit-padding-bottom" type="number" min="0" max="300"></label>
+            <label class="inspector-field">左（px）<input id="edit-padding-left" type="number" min="0" max="300"></label>
+          </div>
+        </div>
+        <hr class="inspector-divider">
+        <div class="field-grid">
+          <label class="inspector-field">宽度（px）<input id="edit-width" type="number" min="1" max="1600"></label>
+          <label class="inspector-field">高度（px）<input id="edit-height" type="number" min="1" max="900"></label>
+          <label class="inspector-field">水平偏移（px）<input id="edit-x" type="number" min="-1600" max="1600"></label>
+          <label class="inspector-field">垂直偏移（px）<input id="edit-y" type="number" min="-900" max="900"></label>
+        </div>
+        <p class="inspector-note">尺寸和偏移以 1600 × 900 设计画布为单位。</p>
+      </div>
+    </section>
+    <section id="global-panel" role="tabpanel" aria-labelledby="global-tab" hidden>
+    <fieldset class="control-group">
+      <legend>中间三组主题色</legend>
+      <div class="color-row"><label for="phase-one-color">前期洞察与问题定义</label><div class="color-value"><output for="phase-one-color"></output><input type="color" id="phase-one-color" data-setting="phaseOne" aria-label="前期洞察与问题定义主题色"></div></div>
+      <div class="color-row"><label for="phase-two-color">上市前研究</label><div class="color-value"><output for="phase-two-color"></output><input type="color" id="phase-two-color" data-setting="phaseTwo" aria-label="上市前研究主题色"></div></div>
+      <div class="color-row"><label for="phase-three-color">上市后验证</label><div class="color-value"><output for="phase-three-color"></output><input type="color" id="phase-three-color" data-setting="phaseThree" aria-label="上市后验证主题色"></div></div>
+    </fieldset>
+    <fieldset class="control-group">
+      <legend>其他颜色</legend>
+      <div class="color-row"><label for="output-color">底部输出成果</label><div class="color-value"><output for="output-color"></output><input type="color" id="output-color" data-setting="output" aria-label="底部输出成果颜色"></div></div>
+      <div class="color-row"><label for="arrows-color">所有箭头</label><div class="color-value"><output for="arrows-color"></output><input type="color" id="arrows-color" data-setting="arrows" aria-label="所有箭头颜色"></div></div>
+    </fieldset>
+    <fieldset class="control-group">
+      <div class="radius-label"><label for="radius">元素圆角程度</label><output id="radius-value" for="radius"></output></div>
+      <input type="range" id="radius" data-setting="radius" min="0" max="32" step="1" aria-label="元素圆角程度">
+      <div class="range-labels"><span>直角</span><span>圆润</span></div>
+    </fieldset>
+    <button type="button" class="reset-button" id="reset-settings">恢复参考版默认样式</button>
+    </section>
+    <button type="button" class="reset-button download-button" id="download-html">下载当前 HTML</button>
+  </aside>
+  </div>
+  <script type="application/json" id="embedded-state">{}</script>
+  <script>
+    const defaults = { phaseOne: '#ef6786', phaseTwo: '#e7a000', phaseThree: '#428edf', output: '#47a471', arrows: '#417dc0', radius: 8 };
+    const storageKey = 'xiaohai-research-style-reference-v2';
+    let settings = { ...defaults };
+    const embedded = JSON.parse(document.querySelector('#embedded-state').textContent);
+    try {
+      const saved = embedded.settings || JSON.parse(localStorage.getItem(storageKey));
+      for (const key of Object.keys(defaults)) {
+        if (key === 'radius') {
+          if (typeof saved?.radius === 'number' && Number.isFinite(saved.radius)) settings.radius = Math.max(0, Math.min(32, saved.radius));
+        } else if (/^#[0-9a-f]{6}$/i.test(saved?.[key])) settings[key] = saved[key];
+      }
+    } catch {}
+
+    // 将 1600 × 900 的设计画布整体等比缩放，始终保持 16:9。
+    const viewport = document.querySelector('.viewport');
+    const canvas = document.querySelector('.canvas');
+    const resize = () => { canvas.style.transform = `scale(${viewport.clientWidth / 1600})`; };
+    new ResizeObserver(resize).observe(viewport);
+    window.addEventListener('beforeprint', resize);
+    window.addEventListener('afterprint', resize);
+    resize();
+
+    function readableInk(hex) {
+      const rgb = hex.slice(1).match(/../g).map(v => parseInt(v, 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+      return (.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]) > .38 ? '#071f56' : '#ffffff';
+    }
+    function applySettings() {
+      const vars = { phaseOne: '--phase-one', phaseTwo: '--phase-two', phaseThree: '--phase-three', output: '--output-color' };
+      for (const [key, variable] of Object.entries(vars)) canvas.style.setProperty(variable, settings[key]);
+      canvas.style.setProperty('--radius', `${settings.radius}px`);
+      canvas.style.setProperty('--output-heading-ink', readableInk(settings.output));
+      ['one', 'two', 'three'].forEach((phase, i) => {
+        const element = document.querySelector(`.phase.${phase}`);
+        const key = ['phaseOne', 'phaseTwo', 'phaseThree'][i];
+        element.toggleAttribute('data-theme-custom', settings[key] !== defaults[key]);
+        element.style.setProperty('--badge-ink', readableInk(settings[key]));
+      });
+      canvas.toggleAttribute('data-radius-custom', settings.radius !== defaults.radius);
+      canvas.toggleAttribute('data-phase-two-custom', settings.phaseTwo !== defaults.phaseTwo);
+      document.querySelector('.deliverables').toggleAttribute('data-theme-custom', settings.output !== defaults.output);
+      // SVG 符号箭头及反馈回路全部使用同一颜色。
+      canvas.style.setProperty('--arrow-color', settings.arrows);
+      document.querySelector('.connections').style.color = 'var(--arrow-color)';
+      if (settings.arrows === defaults.arrows) canvas.style.removeProperty('--arrow-fill');
+      else canvas.style.setProperty('--arrow-fill', 'currentColor');
+      document.querySelectorAll('.connections symbol path').forEach(path => {
+        const gradient = path.closest('symbol').id === 'arrow-down' ? 'down-gradient' : 'arrow-gradient';
+        path.setAttribute('fill', `var(--arrow-fill, url(#${gradient}))`);
+      });
+      document.querySelectorAll('.connections > path').forEach(path => {
+        if (path.hasAttribute('stroke')) {
+          path.setAttribute('stroke', 'var(--arrow-color)');
+          path.setAttribute('stroke-linejoin', settings.radius === 0 ? 'miter' : 'round');
+          path.setAttribute('stroke-linecap', settings.radius === 0 ? 'butt' : 'round');
+        } else path.setAttribute('fill', 'var(--arrow-color)');
+      });
+      document.querySelectorAll('[data-setting]').forEach(input => {
+        input.value = settings[input.dataset.setting];
+        const output = document.querySelector(`output[for="${input.id}"]`);
+        output.textContent = input.dataset.setting === 'radius' ? `${settings.radius} px` : settings[input.dataset.setting];
+      });
+    }
+    function persist() {
+      try { localStorage.setItem(storageKey, JSON.stringify(settings)); }
+      catch { document.querySelector('#download-html').title = '设置已生效，当前浏览器无法自动保存'; }
+    }
+    document.querySelectorAll('[data-setting]').forEach(input => input.addEventListener('input', () => {
+      settings[input.dataset.setting] = input.dataset.setting === 'radius' ? Number(input.value) : input.value;
+      applySettings();
+      persist();
+    }));
+    document.querySelector('#reset-settings').addEventListener('click', () => {
+      settings = { ...defaults };
+      applySettings();
+      persist();
+    });
+    applySettings();
+
+    // 每个可见元素都有独立编辑记录，包含 SVG 箭头。
+    const editableSelector = '.canvas, .canvas h1, .canvas section, .canvas article, .canvas h2, .canvas h3, .canvas p, .canvas .core-question, .canvas .phase-card, .canvas .number, .canvas .feedback-label, .connections use, .connections > path';
+    const elements = [...document.querySelectorAll(editableSelector)];
+    const originals = new Map();
+    const editStorageKey = 'xiaohai-research-elements-reference-v2';
+    let edits = {};
+    let selected = null;
+    const picker = document.querySelector('#element-picker');
+    picker.replaceChildren();
+
+    function hasEditableText(element) {
+      return [...element.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+    }
+    function directText(element) {
+      return [...element.childNodes].map(n => n.nodeType === Node.TEXT_NODE ? n.textContent : n.nodeName === 'BR' ? '\n' : '').join('').trim();
+    }
+    function setDirectText(element, text) {
+      const textNodes = [...element.childNodes].filter(n => n.nodeType === Node.TEXT_NODE || n.nodeName === 'BR');
+      textNodes.forEach(n => n.remove());
+      text.split('\n').forEach((line, index) => {
+        if (index) element.append(document.createElement('br'));
+        element.append(document.createTextNode(line));
+      });
+    }
+    function elementName(element, index) {
+      if (element === canvas) return '整张画布 · 背景';
+      if (element instanceof SVGElement) return `箭头 ${elements.filter(n => n instanceof SVGElement).indexOf(element) + 1}${element.hasAttribute('stroke') ? ' · 反馈回路' : ''}`;
+      const types = { sidebar: '侧栏', 'side-card': '流程卡片', phase: '研究阶段', 'phase-card': '阶段卡片', deliverables: '成果区', 'output-card': '成果卡片', number: '编号', 'core-question': '核心问题' };
+      const type = Object.keys(types).find(c => element.classList.contains(c));
+      const text = element.textContent.trim().replace(/\s+/g, ' ').slice(0, 22);
+      return `${types[type] || (/^H/.test(element.tagName) ? '标题' : '文字')} · ${text || index}`;
+    }
+    elements.forEach((element, index) => {
+      const id = `element-${index}`;
+      element.dataset.editId = id;
+      originals.set(id, { style: element.getAttribute('style') || '', text: hasEditableText(element) ? directText(element) : null });
+      const option = document.createElement('option'); option.value = id; option.textContent = elementName(element, index); picker.append(option);
+    });
+    try { edits = embedded.edits || JSON.parse(localStorage.getItem(editStorageKey)) || {}; } catch {}
+    function replayEdits() {
+      elements.forEach(element => {
+        const edit = edits[element.dataset.editId];
+        if (!edit) return;
+        for (const [property, value] of Object.entries(edit.styles || {})) element.style.setProperty(property, value);
+        if (typeof edit.text === 'string' && originals.get(element.dataset.editId).text !== null) setDirectText(element, edit.text);
+      });
+    }
+    function saveEdits() {
+      try { localStorage.setItem(editStorageKey, JSON.stringify(edits)); }
+      catch { document.querySelector('#download-html').title = '请下载 HTML 保存当前设置'; }
+    }
+    function hexColor(value, fallback = '#ffffff') {
+      const swatch = document.createElement('canvas'); swatch.width = swatch.height = 1;
+      const context = swatch.getContext('2d');
+      context.fillStyle = value; context.fillRect(0, 0, 1, 1);
+      const rgba = context.getImageData(0, 0, 1, 1).data;
+      return rgba[3] === 0 ? fallback : '#' + [...rgba].slice(0, 3).map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+    function showTab(component) {
+      document.querySelector('#component-panel').hidden = !component;
+      document.querySelector('#global-panel').hidden = component;
+      document.querySelector('#component-tab').setAttribute('aria-selected', String(component));
+      document.querySelector('#global-tab').setAttribute('aria-selected', String(!component));
+    }
+    document.querySelector('#component-tab').addEventListener('click', () => showTab(true));
+    document.querySelector('#global-tab').addEventListener('click', () => showTab(false));
+    function inspect(element) {
+      selected?.classList.remove('is-selected');
+      selected = element;
+      selected.classList.add('is-selected');
+      picker.value = selected.dataset.editId;
+      showTab(true);
+      const css = getComputedStyle(selected);
+      const svg = selected instanceof SVGElement;
+      const text = originals.get(selected.dataset.editId).text !== null;
+      document.querySelector('#text-field').hidden = !text;
+      document.querySelector('#background-fields').hidden = svg;
+      document.querySelector('#border-fields').hidden = svg;
+      document.querySelector('#typography-fields').hidden = svg;
+      document.querySelector('#font-family-fields').hidden = svg;
+      document.querySelector('#padding-fields').hidden = svg;
+      document.querySelector('#foreground-label').textContent = svg ? '箭头颜色' : '文字颜色';
+      const values = {
+        'edit-text': directText(selected),
+        'edit-background-mode': css.backgroundImage !== 'none' ? 'gradient' : css.backgroundColor === 'rgba(0, 0, 0, 0)' ? 'transparent' : 'solid',
+        'edit-background': hexColor(css.backgroundColor),
+        'edit-background-end': '#ffffff',
+        'edit-color': hexColor(svg ? selected.hasAttribute('stroke') ? css.stroke : selected.tagName.toLowerCase() === 'use' ? css.color : css.fill : css.color),
+        'edit-border-color': hexColor(css.borderTopColor),
+        'edit-shadow-color': hexColor(css.boxShadow.match(/rgba?\([^)]*\)/)?.[0] || '#edf6ff'),
+        'edit-shadow-mode': css.boxShadow === 'none' ? 'none' : css.boxShadow.includes('inset') ? 'inner' : 'outer',
+        'edit-border-width': parseFloat(css.borderTopWidth) || 0,
+        'edit-border-style': ['solid', 'dashed', 'dotted'].includes(css.borderTopStyle) ? css.borderTopStyle : 'none',
+        'edit-radius': parseFloat(css.borderTopLeftRadius) || 0,
+        'edit-opacity': Math.round(Number(css.opacity) * 100),
+        'edit-font-size': parseFloat(css.fontSize) || 22,
+        'edit-font-weight': String(Math.min(800, Math.max(400, Math.round(Number(css.fontWeight) / 100) * 100))),
+        'edit-text-align': ['left', 'right', 'center'].includes(css.textAlign) ? css.textAlign : 'left',
+        'edit-line-height': Math.round(parseFloat(css.lineHeight) || parseFloat(css.fontSize) * 1.3),
+        'edit-padding-top': parseFloat(css.paddingTop) || 0,
+        'edit-padding-right': parseFloat(css.paddingRight) || 0,
+        'edit-padding-bottom': parseFloat(css.paddingBottom) || 0,
+        'edit-padding-left': parseFloat(css.paddingLeft) || 0,
+        'edit-width': Math.round(svg ? selected.getBBox().width : parseFloat(css.width)),
+        'edit-height': Math.round(svg ? selected.getBBox().height : parseFloat(css.height)),
+        'edit-x': parseFloat(selected.style.translate) || 0,
+        'edit-y': parseFloat(selected.style.translate.split(/\s+/)[1]) || 0
+      };
+      const stops = css.backgroundImage.match(/rgba?\([^)]*\)/g);
+      if (stops?.length) { values['edit-background'] = hexColor(stops[0]); values['edit-background-end'] = hexColor(stops.at(-1)); }
+      Object.entries(values).forEach(([id, value]) => document.getElementById(id).value = value);
+      const family = selected.style.fontFamily;
+      const firstFamily = family.split(',')[0].replace(/["']/g, '').trim();
+      const fontSelect = document.querySelector('#edit-font-family');
+      fontSelect.value = !family || family === 'inherit' ? 'inherit' : [...fontSelect.options].some(o => o.value === firstFamily) ? firstFamily : 'custom';
+      document.querySelector('#custom-font-field').hidden = fontSelect.value !== 'custom';
+      document.querySelector('#edit-custom-font').value = firstFamily;
+      document.querySelector('#gradient-end-row').hidden = values['edit-background-mode'] !== 'gradient';
+      document.querySelector('#edit-width').disabled = selected === canvas || (svg && selected.tagName.toLowerCase() !== 'use');
+      document.querySelector('#edit-height').disabled = selected === canvas || (svg && selected.tagName.toLowerCase() !== 'use');
+      document.querySelector('#edit-x').disabled = selected === canvas;
+      document.querySelector('#edit-y').disabled = selected === canvas;
+      document.querySelector('#select-parent').disabled = selected === canvas;
+    }
+    canvas.addEventListener('click', event => {
+      const element = event.target.closest('[data-edit-id]');
+      if (element) { event.stopPropagation(); inspect(element); }
+    });
+    picker.addEventListener('change', () => inspect(elements.find(n => n.dataset.editId === picker.value)));
+    document.querySelector('#select-parent').addEventListener('click', () => { const parent = selected?.parentElement?.closest('[data-edit-id]'); if (parent) inspect(parent); });
+    function changeStyle(property, value) {
+      if (!selected) return;
+      const edit = edits[selected.dataset.editId] ||= { styles: {} };
+      edit.styles ||= {};
+      edit.styles[property] = value;
+      selected.style.setProperty(property, value);
+      saveEdits();
+    }
+    document.querySelector('#edit-text').addEventListener('input', event => {
+      const edit = edits[selected.dataset.editId] ||= { styles: {} };
+      edit.text = event.target.value; setDirectText(selected, edit.text); saveEdits();
+    });
+    ['edit-background-mode', 'edit-background', 'edit-background-end'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+      const mode = document.querySelector('#edit-background-mode').value;
+      const first = document.querySelector('#edit-background').value;
+      const last = document.querySelector('#edit-background-end').value;
+      changeStyle('background', mode === 'gradient' ? `linear-gradient(110deg, ${first}, ${last})` : mode === 'transparent' ? 'transparent' : first);
+      document.querySelector('#gradient-end-row').hidden = mode !== 'gradient';
+    }));
+    document.querySelector('#edit-color').addEventListener('input', event => {
+      const svg = selected instanceof SVGElement;
+      changeStyle(svg && selected.tagName.toLowerCase() !== 'use' ? selected.hasAttribute('stroke') ? 'stroke' : 'fill' : 'color', event.target.value);
+      if (svg && selected.tagName.toLowerCase() === 'use') changeStyle('--arrow-fill', 'currentColor');
+    });
+    document.querySelector('#edit-shadow-color').addEventListener('input', event => {
+      const shadow = getComputedStyle(selected).boxShadow;
+      if (shadow !== 'none') changeStyle('box-shadow', shadow.replace(/rgba?\([^)]*\)|color\([^)]*\)/g, event.target.value));
+      else { changeStyle('box-shadow', `0 2px 8px ${event.target.value}`); document.querySelector('#edit-shadow-mode').value = 'outer'; }
+    });
+    document.querySelector('#edit-shadow-mode').addEventListener('change', event => {
+      const color = document.querySelector('#edit-shadow-color').value;
+      changeStyle('box-shadow', event.target.value === 'none' ? 'none' : event.target.value === 'inner' ? `inset 0 0 0 3px ${color}` : `0 2px 8px ${color}`);
+    });
+    document.querySelector('#edit-font-family').addEventListener('change', event => {
+      const family = event.target.value;
+      document.querySelector('#custom-font-field').hidden = family !== 'custom';
+      if (family !== 'custom') changeStyle('font-family', family === 'inherit' ? 'inherit' : `"${family}", sans-serif`);
+    });
+    document.querySelector('#edit-custom-font').addEventListener('input', event => {
+      const family = event.target.value.trim().replace(/["\\]/g, '');
+      if (family) changeStyle('font-family', `"${family}", sans-serif`);
+    });
+    const styleFields = { 'edit-padding-top': ['padding-top', 'px'], 'edit-padding-right': ['padding-right', 'px'], 'edit-padding-bottom': ['padding-bottom', 'px'], 'edit-padding-left': ['padding-left', 'px'], 'edit-border-color': ['border-color', ''], 'edit-border-width': ['border-width', 'px'], 'edit-border-style': ['border-style', ''], 'edit-radius': ['border-radius', 'px'], 'edit-font-size': ['font-size', 'px'], 'edit-font-weight': ['font-weight', ''], 'edit-text-align': ['text-align', ''], 'edit-line-height': ['line-height', 'px'], 'edit-width': ['width', 'px'], 'edit-height': ['height', 'px'] };
+    Object.entries(styleFields).forEach(([id, [property, unit]]) => document.getElementById(id).addEventListener('input', event => {
+      if (event.target.value === '' || !event.target.checkValidity()) return;
+      changeStyle(property, event.target.value + unit);
+      if (property === 'border-width' && Number(event.target.value) > 0 && getComputedStyle(selected).borderTopStyle === 'none') { changeStyle('border-style', 'solid'); document.querySelector('#edit-border-style').value = 'solid'; }
+    }));
+    document.querySelector('#edit-opacity').addEventListener('input', event => { if (event.target.value !== '' && event.target.checkValidity()) changeStyle('opacity', String(Number(event.target.value) / 100)); });
+    ['edit-x', 'edit-y'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+      changeStyle('translate', `${Number(document.querySelector('#edit-x').value)}px ${Number(document.querySelector('#edit-y').value)}px`);
+    }));
+    function restoreElement(element) {
+      const original = originals.get(element.dataset.editId);
+      element.setAttribute('style', original.style);
+      if (original.text !== null) setDirectText(element, original.text);
+      delete edits[element.dataset.editId];
+    }
+    document.querySelector('#reset-element').addEventListener('click', () => { restoreElement(selected); applySettings(); resize(); saveEdits(); inspect(selected); });
+    document.querySelector('#reset-settings').addEventListener('click', () => {
+      elements.forEach(restoreElement); edits = {}; saveEdits(); applySettings(); resize(); inspect(selected || canvas); showTab(false);
+    });
+    document.querySelector('#download-html').addEventListener('click', () => {
+      const clone = document.documentElement.cloneNode(true);
+      clone.querySelectorAll('[data-edit-id]').forEach(element => {
+        const original = originals.get(element.dataset.editId);
+        element.classList.remove('is-selected');
+        element.setAttribute('style', original.style);
+        if (original.text !== null) setDirectText(element, original.text);
+      });
+      clone.querySelector('#embedded-state').textContent = JSON.stringify({ settings, edits }).replace(/</g, '\\u003c');
+      const url = URL.createObjectURL(new Blob(['<!doctype html>\n' + clone.outerHTML], {type: 'text/html;charset=utf-8'}));
+      const link = document.createElement('a'); link.href = url; link.download = '小海研究架构-自定义.html'; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    replayEdits();
+    inspect(canvas);
+  </script>
+</body>
+</html>
