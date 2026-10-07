@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>小海问卷 demo</title>
+  <style>
+    :root{--ink:#202925;--muted:#68736d;--paper:#ffffff;--line:#d6d8cf;--teal:#176f63;--teal-pale:#e8f0eb;--coral:#c96d55}
+    *{box-sizing:border-box;border-radius:0!important;box-shadow:none!important}
+    html{background:var(--paper);scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:17px;line-height:1.65;background:var(--paper);min-height:100vh}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .shell{width:min(100% - 40px,1040px);margin:0 auto;padding:24px 0 42px}
+    .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:0 0 15px;margin:0 0 26px;border-bottom:1px solid var(--ink)}
+    .brand{display:flex;align-items:baseline;gap:14px;font-weight:800;letter-spacing:.02em}
+    .brand strong{font-size:20px}
+    .panel{background:transparent;border:0;overflow:visible}
+    .panel-inner{padding:clamp(25px,5vw,54px) 0}
+    .eyebrow{margin:0 0 10px;color:var(--teal);font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    h1,h2,h3,p{margin-top:0}
+    h1{font-size:clamp(34px,6vw,58px);line-height:1.15;letter-spacing:-.045em;margin-bottom:18px;max-width:760px}
+    h2{font-size:clamp(25px,4vw,36px);line-height:1.28;letter-spacing:-.03em;margin-bottom:10px}
+    h3{font-size:19px;line-height:1.45;margin:0 0 10px}
+    .lead{font-size:18px;color:#4d5d56;max-width:710px;margin:0 0 30px}
+    .intro-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(190px,.6fr);gap:clamp(30px,7vw,90px);align-items:center}
+    .intro-aside{border-left:2px solid var(--teal);padding:8px 0 8px 22px;color:#4e5e57}
+    .aside-kicker{font-size:12px;letter-spacing:.12em;color:var(--teal);font-weight:800;margin-bottom:10px}
+    .intro-aside ol{padding-left:19px;margin:0 0 16px;line-height:2}
+    .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:18px 0 24px}
+    .role-card{width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:13px 0 15px;color:var(--ink);transition:color .16s ease,border-color .16s ease;min-height:80px}
+    .role-card:hover,.role-card.selected{border-bottom:3px solid var(--teal);padding-bottom:13px;color:var(--teal)}
+    .role-card strong{display:block;font-size:18px;margin-bottom:2px}
+    .role-card span{display:block;color:var(--muted);font-size:14px}
+    .note{border:0;border-left:2px solid #9caf9f;background:transparent;color:#56645d;padding:1px 0 1px 14px;font-size:14px;margin:20px 0}
+    .note strong{color:var(--ink)}
+    .start-actions{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:24px}
+    .button{border:0;padding:11px 18px;font-weight:700;transition:background .16s ease,color .16s ease,border-color .16s ease;min-height:46px}
+    .button:hover{filter:brightness(.94)}
+    .button:disabled{opacity:.4;cursor:not-allowed;filter:none}
+    .button-primary{background:var(--teal);color:#fff}
+    .button-secondary{background:transparent;color:var(--teal);border-bottom:1px solid var(--teal);padding-left:0;padding-right:0}
+    .button-quiet{background:transparent;color:#56645d;border-bottom:1px solid var(--line);padding-left:0;padding-right:0}
+    .progress-wrap{padding:0 0 19px;border-bottom:1px solid var(--line)}
+    .progress-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;font-weight:700;margin-bottom:9px}
+    .progress-track{height:3px;background:#e1e1d9;overflow:hidden}
+    .progress-fill{height:100%;background:var(--teal);transition:width .25s ease}
+    .section-head{margin:0 0 28px}
+    .section-head .eyebrow{margin-bottom:7px}
+    .section-help{margin:0;color:var(--muted);font-size:15px;max-width:850px}
+    .question-list{display:grid;gap:0}
+    .question-card{border:0;border-bottom:1px solid var(--line);background:transparent;padding:20px 0}
+    .question-title{font-weight:700;margin:0 0 12px;line-height:1.5}
+    .question-num{color:var(--teal);font-size:13px;font-weight:800;margin-right:10px;font-variant-numeric:tabular-nums}
+    .choice-list{display:grid;gap:0;max-width:760px}
+    .choice-option{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr) 28px;align-items:center;width:100%;min-height:52px;padding:8px 0;border:0;border-bottom:1px solid var(--line);background:transparent;color:#394840;font-size:16px;line-height:1.5;cursor:pointer;transition:color .15s ease,border-color .15s ease}
+    .choice-option:hover{color:var(--teal)}
+    .choice-option.selected{color:var(--teal);font-weight:750}
+    .choice-option input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:1}
+    .choice-letter{color:#75827a;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+    .choice-option.selected .choice-letter{color:var(--teal)}
+    .choice-check{justify-self:end;color:var(--teal);font-weight:900;opacity:0;transition:opacity .15s ease}
+    .choice-option.selected .choice-check{opacity:1}
+    .choice-option:focus-within{outline:2px solid var(--teal);outline-offset:3px}
+    .scale-card{border:0;border-bottom:1px solid var(--line);background:transparent;padding:25px 0 29px}
+    .scale-card .question-title{font-size:19px;line-height:1.55;margin-bottom:17px;color:#293a33}
+    .scale-top-labels{display:flex;justify-content:space-between;max-width:650px;margin:0 0 2px;color:var(--muted);font-size:14px;font-weight:700}
+    .scale-top-labels span:last-child{color:var(--teal)}
+    .scale-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:min(100%,650px);margin:0}
+    .scale-choice{display:grid;place-items:center;position:relative;width:82px;height:76px;cursor:pointer;flex:1 1 0;min-width:40px}
+    .scale-choice input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
+    .scale-dot{display:grid;place-items:center;width:38px;height:38px;border-radius:50%!important;border:2px solid #aeb7ad;background:transparent;color:#536159;font-size:14px;font-weight:700;transition:transform .16s ease,background .16s ease,color .16s ease}
+    .scale-choice.pos-1 .scale-dot,.scale-choice.pos-5 .scale-dot{width:58px;height:58px}
+    .scale-choice.pos-2 .scale-dot,.scale-choice.pos-4 .scale-dot{width:49px;height:49px}
+    .scale-choice.pos-1 .scale-dot{border-color:#c96d55}
+    .scale-choice.pos-2 .scale-dot{border-color:#d59b7e}
+    .scale-choice.pos-3 .scale-dot{border-color:#aeb7ad}
+    .scale-choice.pos-4 .scale-dot{border-color:#83ae91}
+    .scale-choice.pos-5 .scale-dot{border-color:#38836c}
+    .scale-choice.pos-1 input:checked + .scale-dot{background:#c96d55;border-color:#c96d55}
+    .scale-choice.pos-2 input:checked + .scale-dot{background:#d59b7e;border-color:#d59b7e}
+    .scale-choice.pos-3 input:checked + .scale-dot{background:#7e8b7f;border-color:#7e8b7f}
+    .scale-choice.pos-4 input:checked + .scale-dot{background:#83ae91;border-color:#83ae91}
+    .scale-choice.pos-5 input:checked + .scale-dot{background:#38836c;border-color:#38836c}
+    .scale-choice input:checked + .scale-dot{color:#fff;transform:scale(1.04)}
+    .scale-choice input:focus-visible + .scale-dot{outline:2px solid var(--ink);outline-offset:4px}
+    .md-instruction{display:flex;align-items:center;gap:10px;border:0;border-left:2px solid var(--teal);background:transparent;padding:2px 0 2px 14px;color:#4d5d56;font-size:14px;margin:22px 0}
+    .md-instruction .spark{font-size:16px;color:var(--teal)}
+    .feature-list{display:grid;gap:0;border-top:1px solid var(--line)}
+    .feature-card{background:transparent;border:0;border-bottom:1px solid var(--line);padding:18px 0;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;transition:padding .15s ease}
+    .feature-card.best-selected{border-left:3px solid var(--teal);padding-left:13px}
+    .feature-card.worst-selected{border-left:3px solid var(--coral);padding-left:13px}
+    .feature-main{display:grid;grid-template-columns:34px minmax(0,1fr);gap:0 12px;align-items:start}
+    .feature-letter{color:var(--teal);font-size:15px;font-weight:850;line-height:1.55}
+    .feature-copy{font-size:16px;line-height:1.55;max-width:680px}
+    .feature-actions{display:flex;gap:17px;flex-wrap:wrap;justify-content:flex-end}
+    .mini-choice{border:0;border-bottom:1px solid transparent;padding:6px 0;min-height:36px;font-size:14px;background:transparent;color:#66736d;white-space:nowrap}
+    .mini-choice:hover{color:var(--teal);border-bottom-color:var(--teal)}
+    .mini-choice.best.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:800}
+    .mini-choice.worst.active{color:var(--coral);border-bottom-color:var(--coral);font-weight:800}
+    .md-status{font-size:13px;color:var(--muted);margin-top:13px;min-height:22px}
+    .choice-cards{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:24px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+    .conjoint-card{border:0;background:transparent;padding:20px 24px 21px 0;display:flex;flex-direction:column;min-height:270px;transition:border-color .16s ease}
+    .conjoint-card+.conjoint-card{border-left:1px solid var(--line);padding:20px 0 21px 24px}
+    .conjoint-card.selected{border-top:3px solid var(--teal);padding-top:18px}
+    .conjoint-card+.conjoint-card.selected{padding-top:18px}
+    .conjoint-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:13px}
+    .option-label{display:inline-flex;align-items:center;color:var(--teal);font-size:14px;font-weight:850;letter-spacing:.04em}
+    .price{font-size:27px;font-weight:850;color:#263b34;white-space:nowrap}
+    .price small{font-size:12px;color:var(--muted);font-weight:600}
+    .attribute-list{display:grid;gap:12px;margin-bottom:17px}
+    .attribute-name{font-size:12px;color:#708078;font-weight:800;margin-bottom:1px;letter-spacing:.04em}
+    .attribute-copy{font-size:15px;color:#35473f;line-height:1.5}
+    .conjoint-pick{margin-top:auto;width:max-content;min-width:120px}
+    .none-card{width:100%;text-align:left;background:transparent;border:0;border-top:3px solid var(--line);border-bottom:1px solid var(--line);color:#56645d;margin-top:6px;padding-left:0;transition:color .16s ease,border-color .16s ease}
+    .none-card.selected{color:var(--teal);font-weight:800;border-color:var(--teal);animation:choiceFlash .22s ease-out}
+    .conjoint-card.selected{animation:choiceFlash .22s ease-out}
+    @keyframes choiceFlash{0%{background:var(--teal-pale)}100%{background:transparent}}
+    .navigation{display:flex;justify-content:space-between;gap:18px;padding:24px 0 18px;align-items:center;border-top:1px solid var(--line)}
+    .finish-banner{border:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--line);background:transparent;padding:17px 0;margin:22px 0}
+    .finish-banner strong{display:block;font-size:17px;color:var(--teal);margin-bottom:4px}
+    .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .summary-tile{border:0;background:transparent;padding:14px 18px 14px 0}
+    .summary-tile+.summary-tile{border-left:1px solid var(--line);padding-left:18px}
+    .summary-tile strong{display:block;font-size:26px;color:var(--teal)}
+    .summary-tile span{font-size:13px;color:var(--muted)}
+    .finish-actions{display:flex;flex-wrap:wrap;gap:18px;margin-top:19px}
+    .caption{font-size:13px;color:var(--muted);margin:12px 0 0}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:720px){.shell{width:min(100% - 28px,1040px);padding-top:14px}.topbar{margin-bottom:18px}.intro-grid{grid-template-columns:1fr;gap:24px}.intro-aside{max-width:420px}.role-grid{grid-template-columns:1fr;gap:4px}.feature-card{grid-template-columns:1fr;gap:10px}.feature-actions{justify-content:flex-start}.choice-cards{grid-template-columns:1fr}.conjoint-card{min-height:0;padding:18px 0 21px}.conjoint-card+.conjoint-card{border-left:0;border-top:1px solid var(--line);padding:18px 0 21px}.conjoint-card.selected,.conjoint-card+.conjoint-card.selected{padding-top:16px}.summary-grid{grid-template-columns:1fr}.summary-tile{padding:12px 0}.summary-tile+.summary-tile{border-left:0;border-top:1px solid var(--line);padding-left:0}.navigation{padding:18px 0;gap:16px}.scale-card{padding:22px 0}.scale-card .question-title{font-size:17px;margin-bottom:13px}.scale-top-labels{font-size:13px}.scale-row{gap:0}.scale-choice{height:66px;min-width:0}.scale-choice.pos-1 .scale-dot,.scale-choice.pos-5 .scale-dot{width:48px;height:48px}.scale-choice.pos-2 .scale-dot,.scale-choice.pos-4 .scale-dot{width:41px;height:41px}.scale-choice.pos-3 .scale-dot{width:34px;height:34px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><strong>小海问卷 demo</strong></div>
+    </header>
+    <main id="app" class="panel" aria-live="polite"></main>
+  </div>
+  <script>
+    "use strict";
+    const STORAGE_KEY = "xiaohai_survey_demo_v2";
+    const ROLE_LABELS = {elder:"长者本人",caregiver:"子女 / 晚辈 / 主要照护者"};
+    const SCALE_LABELS = ["非常不同意","不同意","一般","同意","非常同意"];
+    const MAXDIFF_ELDER = {
+      A1:{group:"健康支持",text:"帮您记住用药、复诊和健康测量安排，到点提醒，并记录有没有完成。"},
+      A2:{group:"健康支持",text:"根据您的长期健康记录总结变化趋势，发现值得关注的异常时提醒您。"},
+      B1:{group:"主动陪伴",text:"按固定时间主动向您问候、提醒或进行简单聊天。"},
+      B2:{group:"主动陪伴",text:"结合时间和最近聊天内容主动与您交流，例如继续昨天的话题、提醒活动。"},
+      C1:{group:"家庭照护联动",text:"经您授权，定期把您的重要近况整理给家人。"},
+      C2:{group:"家庭照护联动",text:"经您授权，出现重要事项或异常情况时主动通知家人。"},
+      D1:{group:"个人记忆与个性化",text:"长期记住您的重要事情、兴趣和生活习惯。"},
+      D2:{group:"个人记忆与个性化",text:"越用越了解您，并根据长期记录调整交流和服务方式。"},
+      E1:{group:"设备与安全联动",text:"可以连接部分智能家居、适老化或安全设备。"},
+      E2:{group:"设备与安全联动",text:"多个设备可以联动，在预设异常情况下自动提醒或触发相应动作。"},
+      F1:{group:"专业康养服务衔接",text:"需要时可以直接转人工咨询或专业人员。"},
+      F2:{group:"专业康养服务衔接",text:"在您确认需求后，可以帮助匹配、预约康养服务并跟踪进度。"}
+    };
+    const MAXDIFF_CAREGIVER = {
+      A1:{group:"健康支持",text:"帮长者记住用药、复诊和健康测量安排，到点提醒，并记录有没有完成。"},
+      A2:{group:"健康支持",text:"根据长者的长期健康记录总结变化趋势，发现值得关注的异常时提醒。"},
+      B1:{group:"主动陪伴",text:"按固定时间主动向长者问候、提醒或进行简单聊天。"},
+      B2:{group:"主动陪伴",text:"结合时间和最近聊天内容主动与长者交流，例如继续昨天的话题、提醒活动。"},
+      C1:{group:"家庭照护联动",text:"经长者授权，定期把长者的重要近况整理给家人。"},
+      C2:{group:"家庭照护联动",text:"经长者授权，出现重要事项或异常情况时主动通知家人。"},
+      D1:{group:"个人记忆与个性化",text:"长期记住长者的重要事情、兴趣和生活习惯。"},
+      D2:{group:"个人记忆与个性化",text:"越用越了解长者，并根据长期记录调整交流和服务方式。"},
+      E1:{group:"设备与安全联动",text:"可以连接部分智能家居、适老化或安全设备。"},
+      E2:{group:"设备与安全联动",text:"多个设备可以联动，在预设异常情况下自动提醒或触发相应动作。"},
+      F1:{group:"专业康养服务衔接",text:"需要时可以直接转人工咨询或专业人员。"},
+      F2:{group:"专业康养服务衔接",text:"确认需求后，可以帮助匹配、预约康养服务并跟踪进度。"}
+    };
+    function maxdiffItems(role){return role==="elder"?MAXDIFF_ELDER:MAXDIFF_CAREGIVER}
+    const CONJOINT_ATTRIBUTE_IDS = ["A","B","C","D","E","F"];
+    const CONJOINT_BLOCKS = [[[[0,2,1,1,1,0,799],[2,2,1,2,2,0,999]],[[2,0,0,2,2,0,1299],[2,2,2,1,2,0,799]],[[2,1,1,0,2,1,999],[0,1,2,0,2,0,1299]],[[0,2,2,1,0,0,1299],[2,2,2,0,2,0,999]],[[1,2,0,2,1,1,999],[0,0,0,2,1,0,799]]],[[[0,0,0,2,2,2,1299],[0,1,0,2,1,1,799]],[[2,2,1,1,0,2,799],[1,1,1,2,0,2,999]],[[1,0,1,2,1,1,1299],[1,1,1,0,2,1,799]],[[2,2,2,2,1,0,999],[1,2,2,1,1,1,1299]],[[1,2,2,0,0,0,999],[2,2,1,0,0,2,1299]]],[[[1,0,1,2,2,1,999],[2,0,1,1,2,0,1299]],[[2,2,2,2,1,1,999],[2,0,1,2,1,0,799]],[[2,0,2,1,0,1,999],[2,2,0,1,1,1,799]],[[1,2,0,1,0,1,1299],[2,1,2,1,0,1,799]],[[2,2,1,1,2,0,799],[2,1,1,1,1,1,999]]],[[[0,2,1,0,0,1,999],[1,2,0,2,0,1,799]],[[1,2,2,0,2,1,1299],[1,2,2,1,1,2,799]],[[2,0,0,0,2,0,799],[1,0,1,1,2,0,999]],[[2,0,1,0,2,2,799],[2,1,1,1,2,0,999]],[[1,1,0,0,0,1,799],[1,1,1,0,2,2,1299]]],[[[2,1,0,2,1,2,1299],[2,0,1,2,0,2,799]],[[0,1,0,2,2,1,999],[1,1,0,0,0,1,1299]],[[2,0,0,1,1,0,999],[2,0,2,2,1,1,1299]],[[0,0,1,0,2,1,799],[1,0,1,0,1,2,999]],[[2,1,1,1,0,0,799],[2,1,2,2,1,0,999]]],[[[1,2,1,1,0,0,1299],[1,1,2,1,0,1,999]],[[0,0,1,0,2,2,1299],[0,0,2,2,2,0,999]],[[0,2,2,0,0,2,1299],[0,2,1,2,2,2,799]],[[2,1,1,1,0,1,1299],[0,1,2,1,1,1,799]],[[2,0,2,2,2,2,1299],[1,0,2,2,0,0,799]]],[[[1,0,0,2,1,1,999],[1,0,2,0,1,2,1299]],[[2,0,1,0,1,1,999],[0,1,0,0,1,1,1299]],[[1,2,2,2,2,1,999],[1,1,2,2,0,2,1299]],[[0,2,2,0,1,2,799],[0,0,0,2,1,2,1299]],[[0,0,1,2,1,2,999],[0,1,1,0,2,2,1299]]],[[[2,2,0,1,2,1,999],[0,0,0,0,2,1,799]],[[1,2,0,1,0,0,1299],[0,2,0,1,2,2,799]],[[1,1,1,2,1,0,799],[0,2,1,2,1,2,999]],[[1,1,0,0,0,0,799],[0,2,0,0,0,2,1299]],[[0,2,1,0,0,1,999],[2,2,0,2,0,1,1299]]],[[[2,1,2,0,2,0,799],[2,1,0,0,0,2,1299]],[[1,1,1,1,0,2,799],[1,2,1,0,0,1,1299]],[[1,1,0,1,0,2,1299],[2,1,0,0,0,0,999]],[[1,1,1,2,1,2,1299],[1,0,0,2,0,2,999]],[[0,1,2,1,2,0,1299],[1,0,0,1,2,0,799]]],[[[2,1,2,1,0,2,799],[1,2,2,1,1,2,1299]],[[0,1,2,2,0,0,799],[0,1,0,2,1,1,999]],[[0,1,2,2,0,2,1299],[0,0,2,1,0,1,799]],[[2,0,0,2,2,1,999],[2,2,1,2,2,0,799]],[[2,0,0,2,2,1,1299],[0,2,0,1,2,1,799]]],[[[0,0,2,0,0,0,799],[0,2,2,1,2,0,999]],[[1,0,0,0,1,2,799],[2,0,1,0,2,2,999]],[[0,2,1,1,2,2,799],[2,2,0,1,1,2,1299]],[[0,1,0,2,2,2,999],[0,1,0,0,0,1,799]],[[0,1,0,0,1,2,799],[0,2,2,1,1,2,999]]],[[[1,1,2,0,1,2,1299],[0,1,1,0,1,0,999]],[[0,1,2,1,1,0,999],[2,0,2,1,0,0,1299]],[[0,2,0,0,1,0,799],[1,0,0,0,0,0,999]],[[1,0,2,1,1,0,999],[1,0,1,2,2,0,1299]],[[1,0,2,1,1,2,1299],[1,0,2,0,0,1,999]]]];
+    function conjointAttributes(role){
+      if(role==="elder")return [
+        {id:"A",name:"健康支持",levels:["提供康养知识问答，以及基础事项、用药提醒。","帮您记住用药、复诊和健康测量安排，到点提醒，并记录有没有完成。","根据您的长期健康记录总结变化趋势，发现值得关注的异常时提醒您。"]},
+        {id:"B",name:"主动陪伴",levels:["您主动唤醒“小海”后，它再进行对话和回应。","按固定时间主动向您问候、提醒或进行简单聊天。","结合时间和最近聊天内容主动与您交流，例如继续昨天的话题、提醒活动。"]},
+        {id:"C",name:"家庭照护联动",levels:["不向您的子女或家人共享信息。","经您授权，定期把您的重要近况整理给家人。","经您授权，出现重要事项或异常情况时主动通知家人。"]},
+        {id:"D",name:"个人记忆与个性化",levels:["记住您的姓名、基础资料和部分偏好。","长期记住您的重要事情、兴趣和生活习惯。","越用越了解您，并根据长期记录调整交流和服务方式。"]},
+        {id:"E",name:"设备与安全联动",levels:["“小海”单独使用，不连接其他家庭设备。","可以连接部分智能家居、适老化或安全设备。","多个设备可以联动，在预设异常情况下自动提醒或触发相应动作。"]},
+        {id:"F",name:"专业康养服务衔接",levels:["提供AI信息、知识和自助服务。","需要时可以直接转人工咨询或专业人员。","您确认需求后，可以帮助匹配、预约康养服务并跟踪进度。"]}
+      ];
+      return [
+        {id:"A",name:"健康支持",levels:["提供康养知识问答，以及长者的基础事项、用药提醒。","帮长者记住用药、复诊和健康测量安排，到点提醒，并记录有没有完成。","根据长者的长期健康记录总结变化趋势，发现值得关注的异常时提醒。"]},
+        {id:"B",name:"主动陪伴",levels:["长者主动唤醒“小海”后，它再进行对话和回应。","按固定时间主动向长者问候、提醒或进行简单聊天。","结合时间和最近聊天内容主动与长者交流，例如继续昨天的话题、提醒活动。"]},
+        {id:"C",name:"家庭照护联动",levels:["不向家人分享长者的信息。","经长者授权，定期把长者的重要近况整理给家人。","经长者授权，出现重要事项或异常情况时主动通知家人。"]},
+        {id:"D",name:"个人记忆与个性化",levels:["记住长者的姓名、基础资料和部分偏好。","长期记住长者的重要事情、兴趣和生活习惯。","越用越了解长者，并根据长期记录调整交流和服务方式。"]},
+        {id:"E",name:"设备与安全联动",levels:["“小海”单独使用，不连接长者家中的其他设备。","可以连接长者家中的部分智能家居、适老化或安全设备。","多个设备可以联动，在预设异常情况下自动提醒或触发相应动作。"]},
+        {id:"F",name:"专业康养服务衔接",levels:["提供AI信息、知识和自助服务。","需要时可以直接转人工咨询或专业人员。","确认长者需求后，可以帮助匹配、预约康养服务并跟踪进度。"]}
+      ];
+    }
+    const MD_BLOCKS = [
+      [["D2","B2","F1","E1"],["D1","B2","F1","A2"],["D2","E1","F2","B2"],["C1","D2","F1","E1"]],
+      [["C2","A1","B1","D2"],["E2","F2","B1","A1"],["A1","D1","E1","C1"],["F1","B2","E1","A2"]],
+      [["F1","C2","E2","A2"],["F1","E2","A1","C1"],["E1","A2","B1","C2"],["E2","F1","A1","C2"]],
+      [["E1","A2","B2","C1"],["B1","C1","D1","E1"],["C1","F1","D2","B1"],["F2","E1","A2","D1"]],
+      [["E2","C1","D2","A1"],["C1","E1","F2","B2"],["C2","F2","A2","D2"],["E1","A1","B1","D2"]],
+      [["F2","E2","C2","B2"],["D2","F1","C2","B1"],["E2","C2","B2","D1"],["D1","B1","C2","F1"]],
+      [["D1","F2","E1","C2"],["A2","B1","E1","C2"],["F1","A1","C2","E1"],["C2","F2","B2","A1"]],
+      [["A1","E1","F2","B1"],["F2","A2","C1","D2"],["F2","B1","D1","A1"],["A2","C2","D2","B2"]],
+      [["B2","F1","A1","D1"],["A1","C2","B2","D1"],["D1","E2","F1","A2"],["B1","A2","E2","C1"]],
+      [["B1","D1","C1","F1"],["E1","A1","D2","F1"],["A2","B2","C1","F1"],["A1","D1","C1","F2"]],
+      [["C1","D2","A2","F2"],["B2","D2","A2","E2"],["B2","D2","A1","E2"],["D2","E2","F2","B1"]],
+      [["A2","B1","D1","E2"],["C2","D1","E2","F2"],["B1","C1","E2","F2"],["B2","C1","D1","E2"]]
+    ];
+    const PROFILE_A = [
+      {id:"A1_age",text:"您的年龄",options:["60–69岁","70–79岁","80岁及以上"]},
+      {id:"A2_living",text:"您目前主要的居住方式",options:["独居","仅与配偶同住","与子女同住","与其他家人同住","机构居住"]},
+      {id:"A3_chronic",text:"您目前的慢性病情况",options:["无","1种","2种及以上","不清楚或不便回答"]},
+      {id:"A4_independence",text:"您目前日常生活的自理情况",options:["基本独立","少数活动需要帮助","较多活动需要帮助"]},
+      {id:"A5_distance",text:"您与成年子女或主要晚辈的居住距离",options:["同住","附近居住","同城不同住","异地","不适用"]},
+      {id:"A6_care",text:"您目前在日常生活中接受家人照护或帮助的程度",options:["几乎不需要","偶尔需要","经常需要","日常较多事情需要家人帮助"]},
+      {id:"A7_digital",text:"您使用智能手机或智能设备的情况",options:["基本不会使用","会使用但经常需要帮助","能独立完成常用操作","较熟练"]},
+      {id:"A8_decision",text:"如果购买类似“小海”的产品，您会在多大程度上参与购买决策",options:["几乎不参与","参与较少","与家人共同决定","主要或最终由我决定"]},
+      {id:"A9_decider",text:"如果购买类似“小海”的产品，通常谁拥有最终决定权",options:["我本人","子女或晚辈","共同决定","其他"]},
+      {id:"A10_payer",text:"如果购买类似“小海”的产品，通常由谁主要付款",options:["我本人","子女或晚辈","共同付款","其他"]}
+    ];
+    const PROFILE_B = [
+      {id:"A1_relation",text:"您与本次考虑的长者是什么关系",options:["配偶","子女","孙辈或其他晚辈","其他主要照护者"]},
+      {id:"A2_age",text:"本次考虑的长者年龄",options:["60–69岁","70–79岁","80岁及以上"]},
+      {id:"A3_living",text:"长者目前主要居住方式",options:["独居","仅与配偶同住","与子女同住","与其他家人同住","机构居住"]},
+      {id:"A4_chronic",text:"长者目前慢性病情况",options:["无","1种","2种及以上","不清楚或不便回答"]},
+      {id:"A5_independence",text:"长者日常生活自理情况",options:["基本独立","少数活动需要帮助","较多活动需要帮助"]},
+      {id:"A6_distance",text:"您与长者目前的居住距离",options:["同住","附近居住","同城不同住","异地","其他"]},
+      {id:"A7_care",text:"您目前参与长者日常照护的程度",options:["几乎不参与","偶尔参与","经常参与","主要由我负责"]},
+      {id:"A8_digital",text:"长者使用智能手机或智能设备的情况",options:["基本不会使用","会使用但经常需要帮助","能独立完成常用操作","较熟练"]},
+      {id:"A9_decision",text:"如果购买类似“小海”的产品，您在购买决策中的参与程度",options:["几乎不参与","参与较少","共同决策","主要或最终决策"]},
+      {id:"A10_payer",text:"如果购买类似“小海”的产品，通常由谁主要付款",options:["长者本人","子女或晚辈","共同付款","其他"]}
+    ];
+    function likertItems(role){
+      const elder = role === "elder";
+      return [
+        {id:"H1",text:elder?"过去3个月，在用药、复诊或健康测量等事情上，我经常需要家人或他人提醒和帮助。":"过去3个月，长者在用药、复诊或健康测量等事情上，经常需要家人或他人提醒和帮助。"},
+        {id:"H2",text:elder?"即使已有家人或工具帮助，我有时仍不能及时了解或处理自己的健康变化。":"即使已有家人或工具帮助，我们有时仍不能及时了解或处理长者的健康变化。"},
+        {id:"S1",text:elder?"如果我独处时跌倒、身体不适或发生意外，我担心不能被及时发现。":"如果长者独处时跌倒、身体不适或发生意外，我担心不能被及时发现。"},
+        {id:"S2",text:elder?"现有的照护或安全措施，还不能让我对自己的日常安全完全放心。":"现有的照护或安全措施，还不能让我对长者的日常安全完全放心。"},
+        {id:"CP1",text:elder?"过去3个月，我有想聊天、交流或有人陪伴的时候，但不一定总能找到合适的人。":"过去3个月，长者有较长时间缺少交流或陪伴的情况。"},
+        {id:"CP2",text:elder?"我实际获得的陪伴，有时少于我希望得到的程度。":"我们实际能提供给长者的陪伴，有时少于我们认为长者需要的程度。"},
+        {id:"FC1",text:elder?"家人通常需要主动联系我，才能了解我的重要近况。":"我们通常需要主动联系长者，才能了解其重要近况。"},
+        {id:"FC2",text:elder?"一些与我健康或生活照护有关的重要信息，有时不能及时传递给家人。":"一些与长者健康或生活照护有关的重要信息，有时会传递不及时或被遗漏。"},
+        {id:"DL1",text:elder?"在事项提醒、信息查询或日常安排上，我仍会需要他人帮助。":"在事项提醒、信息查询或日常安排上，长者仍会需要他人帮助。"},
+        {id:"DL2",text:elder?"即使已有家人或工具帮助，有些日常事情我仍不容易独立、顺利完成。":"即使已有家人或工具帮助，有些日常事情长者仍不容易独立、顺利完成。"},
+        {id:"DIG1",text:elder?"我通常能独立完成智能手机或智能设备上的常用操作，不需要他人一直指导。":"长者通常能独立完成智能手机或智能设备上的常用操作，不需要他人一直指导。"},
+        {id:"TR1",text:elder?"对于提醒、信息查询等低风险任务，我愿意让AI为我提供辅助。":"对于提醒、信息查询等低风险任务，我愿意让AI辅助长者。"},
+        {id:"TR2",text:elder?"如果AI能清楚说明它能做什么、不能做什么，以及遇到不确定情况时主动提醒，我会更愿意使用它。":"如果AI能清楚说明它能做什么、不能做什么，以及遇到不确定情况时主动提醒，我会更愿意让长者使用它。"},
+        {id:"PR1",text:elder?"我担心此类设备收集过多与我有关的语音、健康或生活信息。":"我担心此类设备收集过多长者的语音、健康或生活信息。"},
+        {id:"PR2",text:elder?"如果我不能清楚控制哪些信息被保存、使用或分享，我会降低购买或使用意愿。":"如果我们不能清楚控制长者哪些信息被保存、使用或分享，我会降低购买或使用意愿。"},
+        {id:"HS1",text:elder?"涉及健康、照护、支付等重要事项时，我希望能够方便地转接真人处理。":"涉及长者健康、照护、支付等重要事项时，我希望能够方便地转接真人处理。"},
+        {id:"CPI1",text:elder?"家人的意见和付款意愿，会明显影响我是否购买或使用此类产品。":"家庭成员的意见和付款意愿，会明显影响我们是否为长者购买此类产品。"}
+      ];
+    }
+    function emptyResponse(role){return {role:role,profile:{},likert:{},maxdiff:[],conjoint:[],designs:null,metadata:{responseId:null,startedAt:null,completedAt:null,mode:"live-demo",seed:null},tracking:{startedAtMs:null,completedAtMs:null,events:[]}}}
+    let response = emptyResponse(null);
+    let currentStep = -1;
+    const app = document.getElementById("app");
+    const STEPS = [{type:"profile"},{type:"likert"},{type:"maxdiff",index:0},{type:"maxdiff",index:1},{type:"maxdiff",index:2},{type:"maxdiff",index:3},{type:"conjoint",index:0},{type:"conjoint",index:1},{type:"conjoint",index:2},{type:"conjoint",index:3},{type:"conjoint",index:4}];
+    function newResponseId(){return "xh-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10)}
+    function escapeHtml(value){return String(value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]})}
+    function seeded(seed){let a=seed>>>0;return function(){a+=0x6D2B79F5;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+    function shuffled(list,rng){const a=list.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    function makeConjoint(seed,role){
+      const rng=seeded(seed^0x9E3779B9), blockIndex=Math.floor(rng()*CONJOINT_BLOCKS.length);
+      const rawBlock=CONJOINT_BLOCKS[blockIndex];
+      const tasks=rawBlock.map(function(pair,index){
+        const levelsA=pair[0].slice(0,6),levelsB=pair[1].slice(0,6);
+        const activeAttrs=CONJOINT_ATTRIBUTE_IDS.filter(function(id,i){return levelsA[i]!==levelsB[i]});
+        return {taskId:index+1,activeAttrs:activeAttrs,options:{A:{levels:levelsA,price:pair[0][6]},B:{levels:levelsB,price:pair[1][6]}},choice:null};
+      });
+      return {blockId:blockIndex+1,tasks:tasks,role:role};
+    }
+    function makeMaxDiff(seed){
+      const rng=seeded(seed^0x85EBCA6B), blockIndex=Math.floor(rng()*MD_BLOCKS.length);
+      const tasks=MD_BLOCKS[blockIndex].map(function(ids){return shuffled(ids,rng)});
+      return {blockId:blockIndex+1,tasks:tasks};
+    }
+    function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({response:response,currentStep:currentStep}))}catch(e){}}
+    function totalDurationMs(){const t=response.tracking||{};if(!t.startedAtMs)return 0;return Math.max(0,(t.completedAtMs||Date.now())-t.startedAtMs)}
+    function formatDuration(ms){const seconds=Math.floor(ms/1000),minutes=Math.floor(seconds/60),remaining=seconds%60;return minutes?minutes+"分"+String(remaining).padStart(2,"0")+"秒":remaining+"秒"}
+    function logSelection(type,questionId,action,itemId,value,state){if(!response.tracking||!response.tracking.startedAtMs||currentStep<0||currentStep>=STEPS.length)return;const now=Date.now();response.tracking.events.push({responseId:response.metadata.responseId,eventNo:response.tracking.events.length+1,timestamp:new Date(now).toISOString(),elapsedSeconds:Number(((now-response.tracking.startedAtMs)/1000).toFixed(1)),step:currentStep+1,stepName:sectionName(currentStep),eventType:type,questionId:questionId,itemId:itemId||"",action:action||"select",value:value==null?"":value,state:state?JSON.stringify(state):""});persist()}
+    function goToStep(target){if(target>=STEPS.length&&!response.tracking.completedAtMs){const now=Date.now();response.tracking.completedAtMs=now;response.metadata.completedAt=new Date(now).toISOString()}currentStep=target;persist();render()}
+    function restore(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return;const saved=JSON.parse(raw);if(saved&&saved.response&&saved.response.role){response=saved.response;currentStep=Number.isInteger(saved.currentStep)?saved.currentStep:-1;if(!response.metadata)response.metadata={mode:"live-demo",seed:null};if(!response.metadata.responseId)response.metadata.responseId=newResponseId();if(!response.tracking){const now=Date.now();response.tracking={startedAtMs:currentStep>=0&&currentStep<STEPS.length?now:null,completedAtMs:currentStep>=STEPS.length?now:null,events:[]};if(response.tracking.startedAtMs)response.metadata.startedAt=new Date(now).toISOString();if(response.tracking.completedAtMs)response.metadata.completedAt=new Date(now).toISOString()}if(!Array.isArray(response.tracking.events))response.tracking.events=[]}}catch(e){}}
+    function sectionName(step){if(step===0)return "家庭与个人基本信息";if(step===1)return "过去3个月的实际感受";if(step>=2&&step<=5)return "功能优先级 · MaxDiff";if(step>=6&&step<=10)return "功能组合与价格 · Conjoint";return ""}
+    function progressHtml(){const n=currentStep+1,p=Math.max(0,Math.min(100,Math.round(n/STEPS.length*100)));return '<div class="progress-wrap"><div class="progress-meta"><span>'+escapeHtml(sectionName(currentStep))+'</span><span>第 '+n+' / '+STEPS.length+' 步</span></div><div class="progress-track" role="progressbar" aria-valuenow="'+n+'" aria-valuemin="0" aria-valuemax="'+STEPS.length+'"><div class="progress-fill" style="width:'+p+'%"></div></div></div>'}
+    function introHtml(){
+      return '<div class="panel-inner"><div class="intro-grid"><div><h3>请选择答题身份</h3><div class="role-grid"><button class="role-card '+(response.role==="elder"?"selected":"")+'" data-role="elder"><strong>长者本人</strong><span>按自己的实际情况作答</span></button><button class="role-card '+(response.role==="caregiver"?"selected":"")+'" data-role="caregiver"><strong>子女 / 晚辈 / 照护者</strong><span>按您了解到的长者情况作答</span></button></div><div class="start-actions"><button class="button button-primary" data-action="start" '+(!response.role?'disabled':'')+'>开始体验</button><button class="button button-secondary" data-action="demo">一键填入演示答卷</button></div></div><aside class="intro-aside"><p class="aside-kicker">问卷路径</p><ol><li>家庭与个人情况</li><li>日常体验</li><li>功能取舍</li><li>价格选择</li></ol></aside></div></div>';
+    }
+    function choiceOption(question,value,checked,index){const letter=String.fromCharCode(65+index);return '<label class="choice-option '+(checked?'selected':'')+'"><input type="radio" name="'+escapeHtml(question.id)+'" data-answer="profile" data-key="'+escapeHtml(question.id)+'" value="'+escapeHtml(value)+'" '+(checked?'checked':'')+'><span class="choice-letter">'+letter+'</span><span>'+escapeHtml(value)+'</span><span class="choice-check" aria-hidden="true">✓</span></label>'}
+    function profileHtml(){
+      const questions=response.role==="elder"?PROFILE_A:PROFILE_B;
+      let cards=questions.map(function(q,i){return '<section class="question-card"><p class="question-title"><span class="question-num">'+String(i+1).padStart(2,"0")+'</span>'+escapeHtml(q.text)+'</p><div class="choice-list">'+q.options.map(function(option,j){return choiceOption(q,option,response.profile[q.id]===option,j)}).join("")+'</div></section>'}).join("");
+      return '<div class="panel-inner"><div class="section-head"><p class="eyebrow">A · '+escapeHtml(ROLE_LABELS[response.role])+'</p><h2>先了解一点家庭与个人情况</h2><p class="section-help">请根据目前的实际情况选择最合适的一项。</p></div><div class="question-list">'+cards+'</div></div>';
+    }
+    function likertHtml(){
+      const items=likertItems(response.role);
+      const cards=items.map(function(q,i){
+        const chosen=Number(response.likert[q.id]||0);
+        const dots=[1,2,3,4,5].map(function(n){return '<label class="scale-choice pos-'+n+'"><input type="radio" name="lk_'+q.id+'" data-answer="likert" data-key="'+q.id+'" value="'+n+'" aria-label="'+n+'，'+SCALE_LABELS[n-1]+'" '+(chosen===n?'checked':'')+'><span class="scale-dot" aria-hidden="true">'+n+'</span></label>'}).join("");
+        return '<section class="scale-card"><p class="question-title"><span class="question-num">'+String(i+1).padStart(2,"0")+'</span>'+escapeHtml(q.text)+'</p><div class="scale-top-labels"><span>非常不同意</span><span>非常同意</span></div><div class="scale-row" role="radiogroup" aria-label="'+escapeHtml(q.id)+'，1 到 5 的同意程度">'+dots+'</div></section>';
+      }).join("");
+      return '<div class="panel-inner"><div class="section-head"><p class="eyebrow">B · 17 项体验量表</p><h2>请根据过去 3 个月的实际情况回答</h2><p class="section-help">请按过去 3 个月的真实情况，选择一个最符合您的数字。</p></div><div class="question-list">'+cards+'</div></div>';
+    }
+    function maxdiffHtml(taskIndex){
+      const design=response.designs.maxdiff,ids=design.tasks[taskIndex],answer=response.maxdiff[taskIndex]||{best:null,worst:null},bank=maxdiffItems(response.role);
+      const cards=ids.map(function(id,index){const item=bank[id],best=answer.best===id,worst=answer.worst===id,letter=String.fromCharCode(65+index);return '<article class="feature-card '+(best?'best-selected':worst?'worst-selected':'')+'"><div class="feature-main"><span class="feature-letter">'+letter+'</span><div class="feature-copy">'+escapeHtml(item.text)+'</div></div><div class="feature-actions"><button class="mini-choice best '+(best?'active':'')+'" aria-pressed="'+best+'" aria-label="最希望：'+escapeHtml(item.text)+'" data-md-kind="best" data-md-item="'+id+'">最希望</button><button class="mini-choice worst '+(worst?'active':'')+'" aria-pressed="'+worst+'" aria-label="最不需要：'+escapeHtml(item.text)+'" data-md-kind="worst" data-md-item="'+id+'">最不需要</button></div></article>'}).join("");
+      const caregiver=response.role==="caregiver";
+      const prompt=caregiver?'':'请从当前这 4 项中选出您最希望小海优先具备的一项，以及您认为最不需要优先投入的一项。';
+      return '<div class="panel-inner"><div class="section-head"><p class="eyebrow">C · 功能优先级</p><h2>'+(caregiver?'您希望为长者优先配置哪些功能？':'您最希望小海优先具备哪些功能？')+'</h2>'+(prompt?'<p class="section-help">'+prompt+'</p>':'')+'</div><div class="md-instruction"><span class="spark">✦</span><span>每题分别选一项“最希望”和一项“最不需要”，两项不能相同。</span></div><div class="feature-list">'+cards+'</div><p class="caption">题组 '+design.blockId+' · 第 '+(taskIndex+1)+' / 4 题</p></div>';
+    }
+    function conjointHtml(taskIndex){
+      const task=response.designs.conjoint.tasks[taskIndex],attributes=conjointAttributes(response.role),caregiver=response.role==="caregiver";
+      function optionCard(label){const option=task.options[label];const selected=task.choice===label;const lines=task.activeAttrs.map(function(id){const attr=attributes.find(function(a){return a.id===id});const levelIndex=attr.id.charCodeAt(0)-65;return '<div><div class="attribute-name">'+escapeHtml(attr.name)+'</div><div class="attribute-copy">'+escapeHtml(attr.levels[option.levels[levelIndex]])+'</div></div>'}).join("");return '<article class="conjoint-card '+(selected?'selected':'')+'"><div class="conjoint-top"><span class="option-label">方案 '+label+'</span><span class="price">'+option.price+'<small> 元</small></span></div><div class="attribute-list">'+lines+'</div><button class="button '+(selected?'button-primary':'button-secondary')+' conjoint-pick" aria-pressed="'+selected+'" data-conjoint="'+label+'">选择方案 '+label+'</button></article>'}
+      const question=caregiver?'你愿意为家中长者购买哪个版本？':'您愿意为自己购买哪个版本？';
+      const prompt=caregiver?'假设您正在考虑为家中长者购买“小海”。':'假设您正在考虑购买“小海”供自己使用。';
+      return '<div class="panel-inner"><div class="section-head"><p class="eyebrow">D · 功能组合与价格</p><h2>'+question+'</h2><p class="section-help">'+prompt+'每题只展示 3 项不同的功能与一次性购买价格；其他功能相同。</p></div><div class="choice-cards">'+optionCard("A")+optionCard("B")+'</div><button class="button none-card '+(task.choice==="none"?'selected':'')+'" aria-pressed="'+(task.choice==="none")+'" data-conjoint="none">都不购买</button><p class="caption">题组 '+response.designs.conjoint.blockId+' · 第 '+(taskIndex+1)+' / 5 题 · 一次性购买价</p></div>';
+    }
+    function completionHtml(){
+      const bestCount=response.maxdiff.filter(function(x){return x&&x.best}).length,conjointCount=response.designs?response.designs.conjoint.tasks.filter(function(x){return !!x.choice}).length:0;
+      const isDemo=response.metadata.mode==="demo",durationLabel=isDemo?"—":formatDuration(totalDurationMs());
+      return '<div class="panel-inner"><p class="eyebrow">完成</p><h2>谢谢，答题完成。</h2><p class="lead">'+(isDemo?'这是一份演示答卷。':'感谢您参与这次问卷。')+'</p><div class="finish-banner"><span>答题用时：'+durationLabel+'</span></div><div class="summary-grid"><div class="summary-tile"><strong>'+Object.keys(response.profile).length+'</strong><span>项基本信息</span></div><div class="summary-tile"><strong>'+Object.keys(response.likert).length+' / 17</strong><span>项体验量表</span></div><div class="summary-tile"><strong>'+bestCount+' / 4 · '+conjointCount+' / 5</strong><span>道 MaxDiff 最希望题 · Conjoint 选择题</span></div></div><div class="finish-actions"><button class="button button-primary" data-action="download-csv">下载答卷 CSV</button><button class="button button-secondary" data-action="download-activity">下载点击记录 CSV</button><button class="button button-secondary" data-action="download-json">下载完整 JSON</button><button class="button button-quiet" data-action="restart">重新开始</button></div></div>';
+    }
+    function currentStepValid(){
+      if(currentStep<0)return false;
+      if(currentStep===0){const qs=response.role==="elder"?PROFILE_A:PROFILE_B;return qs.every(function(q){return !!response.profile[q.id]})}
+      if(currentStep===1)return Object.keys(response.likert).length===17;
+      if(currentStep>=2&&currentStep<=5){const a=response.maxdiff[currentStep-2];return !!(a&&a.best&&a.worst&&a.best!==a.worst)}
+      if(currentStep>=6&&currentStep<=10)return !!response.designs.conjoint.tasks[currentStep-6].choice;
+      return false;
+    }
+    function navigationHtml(){const valid=currentStepValid(),atFirst=currentStep===0,atLast=currentStep===STEPS.length-1;return '<div class="navigation"><button class="button button-quiet" data-action="'+(atFirst?'home':'previous')+'">'+(atFirst?'返回身份选择':'上一步')+'</button><button class="button button-primary" data-action="'+(atLast?'finish':'next')+'" '+(!valid?'disabled':'')+'>'+(atLast?'完成问卷':'继续')+'</button></div>'}
+    function render(){
+      if(currentStep===-1){app.innerHTML=introHtml();return}
+      if(currentStep>=STEPS.length){app.innerHTML=completionHtml();return}
+      const step=STEPS[currentStep];let content="";
+      if(step.type==="profile")content=profileHtml();
+      else if(step.type==="likert")content=likertHtml();
+      else if(step.type==="maxdiff")content=maxdiffHtml(step.index);
+      else content=conjointHtml(step.index);
+      app.innerHTML=progressHtml()+content+navigationHtml();
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+    function updateNavigation(){const button=app.querySelector('[data-action="next"], [data-action="finish"]');if(button)button.disabled=!currentStepValid()}
+    function startSession(){
+      const role=response.role,seed=Math.floor(Math.random()*4294967295),now=Date.now();response=emptyResponse(role);response.metadata.responseId=newResponseId();response.metadata.startedAt=new Date(now).toISOString();response.metadata.seed=seed;response.tracking.startedAtMs=now;response.designs={maxdiff:makeMaxDiff(seed),conjoint:makeConjoint(seed,role)};response.maxdiff=Array.from({length:4},function(){return {best:null,worst:null}});currentStep=0;persist();render();
+    }
+    function setDemo(){
+      const role=response.role||"elder",now=Date.now();response=emptyResponse(role);const seed=20261006+Math.floor(Math.random()*999999);response.metadata.responseId=newResponseId();response.metadata.startedAt=new Date(now).toISOString();response.metadata.completedAt=new Date(now).toISOString();response.metadata.seed=seed;response.metadata.mode="demo";response.tracking.startedAtMs=now;response.tracking.completedAtMs=now;response.designs={maxdiff:makeMaxDiff(seed),conjoint:makeConjoint(seed,role)};response.maxdiff=Array.from({length:4},function(){return {best:null,worst:null}});
+      const pqs=role==="elder"?PROFILE_A:PROFILE_B;pqs.forEach(function(q,i){response.profile[q.id]=q.options[Math.min(q.options.length-1,Math.floor(q.options.length*.45)+(i%2))]});
+      likertItems(role).forEach(function(q,i){response.likert[q.id]=[4,3,4,3,4,3,3,4,3,3,4,4,4,3,4,4,3][i]});
+      response.designs.maxdiff.tasks.forEach(function(ids,i){response.maxdiff[i]={best:ids[(i+1)%4],worst:ids[(i+3)%4]}});
+      response.designs.conjoint.tasks.forEach(function(task,i){task.choice=["A","B","none","A","B"][i]});currentStep=STEPS.length;persist();render();
+    }
+    function mdSelect(kind,id){
+      const index=currentStep-2,answer=response.maxdiff[index];if(!answer)return;
+      if(kind==="best"){answer.best=answer.best===id?null:id;if(answer.worst===id)answer.worst=null}else{answer.worst=answer.worst===id?null:id;if(answer.best===id)answer.best=null}
+      app.querySelectorAll(".mini-choice").forEach(function(button){const itemId=button.dataset.mdItem,choice=button.dataset.mdKind,active=choice==="best"?answer.best===itemId:answer.worst===itemId;button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active))});
+      app.querySelectorAll(".feature-card").forEach(function(card){const id=card.querySelector("[data-md-item]").dataset.mdItem;card.classList.toggle("best-selected",answer.best===id);card.classList.toggle("worst-selected",answer.worst===id)});
+      persist();updateNavigation();
+    }
+    function selectConjoint(label){
+      const task=response.designs.conjoint.tasks[currentStep-6];task.choice=label;
+      app.querySelectorAll(".conjoint-card").forEach(function(card){const button=card.querySelector("[data-conjoint]");const selected=button.dataset.conjoint===label;card.classList.toggle("selected",selected);button.classList.toggle("button-primary",selected);button.classList.toggle("button-secondary",!selected);button.setAttribute("aria-pressed",String(selected))});
+      const none=app.querySelector(".none-card");const noneSelected=label==="none";none.classList.toggle("selected",noneSelected);none.setAttribute("aria-pressed",String(noneSelected));persist();updateNavigation();
+    }
+    function next(){if(!currentStepValid())return;goToStep(currentStep+1)}
+    function csvCell(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'}
+    function responseRows(){
+      const rows=[["module","question_id","question_or_task","answer","design_details"]];
+      const pqs=response.role==="elder"?PROFILE_A:PROFILE_B;pqs.forEach(function(q){rows.push(["profile",q.id,q.text,response.profile[q.id],""])});
+      likertItems(response.role).forEach(function(q){const n=response.likert[q.id];rows.push(["likert",q.id,q.text,n+" · "+SCALE_LABELS[n-1],""])});
+      response.designs.maxdiff.tasks.forEach(function(ids,i){const a=response.maxdiff[i];rows.push(["maxdiff","MD"+(i+1),"4项功能优先级","最希望="+a.best+"; 最不需要="+a.worst,ids.join(" | ")])});
+      const attributes=conjointAttributes(response.role);
+      response.designs.conjoint.tasks.forEach(function(task,i){const details=["方案A："+task.options.A.price+"元", "方案B："+task.options.B.price+"元"].concat(task.activeAttrs.map(function(id){const attr=attributes.find(function(x){return x.id===id}),idx=attr.id.charCodeAt(0)-65;return attr.name+"：A「"+attr.levels[task.options.A.levels[idx]]+"」/ B「"+attr.levels[task.options.B.levels[idx]]+"」"})).join("；");rows.push(["conjoint","CJ"+(i+1),"功能组合选择",task.choice,details])});
+      rows.push(["metadata","response_id","答卷编号",response.metadata.responseId||"",""]);rows.push(["metadata","respondent_role","答题身份",ROLE_LABELS[response.role],""]);rows.push(["metadata","response_mode","数据类型",response.metadata.mode,"演示数据不可作为真实调研样本"]);rows.push(["metadata","started_at","答题开始时间",response.metadata.startedAt||"",""]);rows.push(["metadata","completed_at","答题完成时间",response.metadata.completedAt||"",""]);rows.push(["metadata","duration_seconds","答题总时长（秒）",response.metadata.mode==="demo"?"":(totalDurationMs()/1000).toFixed(1),""]);rows.push(["metadata","maxdiff_block","MaxDiff题组",response.designs.maxdiff.blockId,""]);rows.push(["metadata","conjoint_block","Conjoint题组",response.designs.conjoint.blockId,""]);rows.push(["metadata","design_seed","题组随机编号",response.metadata.seed,""]);return rows;
+    }
+    function download(name,type,contents){const blob=new Blob([contents],{type:type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)}
+    function downloadCsv(){const lines=responseRows().map(function(row){return row.map(csvCell).join(",")});download("xiaohai_demo_response.csv","text/csv;charset=utf-8;", "\uFEFF"+lines.join("\r\n"))}
+    function activityRows(){const rows=[["response_id","event_no","timestamp","elapsed_seconds","step","step_name","event_type","question_id","item_id","action","selected_value","answer_state"]];(response.tracking&&response.tracking.events||[]).forEach(function(e){rows.push([e.responseId,e.eventNo,e.timestamp,e.elapsedSeconds,e.step,e.stepName,e.eventType,e.questionId,e.itemId,e.action,e.value,e.state])});return rows}
+    function downloadActivityCsv(){const lines=activityRows().map(function(row){return row.map(csvCell).join(",")});download("xiaohai_demo_click_log.csv","text/csv;charset=utf-8;", "\uFEFF"+lines.join("\r\n"))}
+    function downloadJson(){download("xiaohai_demo_response.json","application/json;charset=utf-8;",JSON.stringify(response,null,2))}
+    function restart(){if(!window.confirm("重新开始会覆盖当前浏览器里保存的这份答卷。建议先下载保留。确定继续吗？"))return;response=emptyResponse(null);currentStep=-1;persist();render()}
+    app.addEventListener("click",function(event){const input=event.target.closest&&event.target.closest("input[data-answer]");if(!input)return;const group=input.dataset.answer,label=input.closest("label"),letter=label&&label.querySelector(".choice-letter"),itemId=group==="profile"&&letter?letter.textContent:input.value;logSelection(group,input.dataset.key,"choose",itemId,input.value,{optionCode:itemId,value:input.value})},true);
+    app.addEventListener("change",function(event){const input=event.target;if(!input.matches("input[data-answer]"))return;const group=input.dataset.answer,key=input.dataset.key;if(group==="profile")response.profile[key]=input.value;else response.likert[key]=Number(input.value);const label=input.closest("label");if(group==="profile"&&label){const list=label.parentElement;Array.from(list.querySelectorAll(".choice-option")).forEach(function(x){x.classList.remove("selected")});label.classList.add("selected")}persist();updateNavigation()});
+    app.addEventListener("click",function(event){
+      const target=event.target.closest("button");if(!target)return;
+      if(target.dataset.role){response.role=target.dataset.role;persist();render();return}
+      const action=target.dataset.action;
+      if(action==="start"){startSession();return}if(action==="demo"){setDemo();return}if(action==="next"){next();return}if(action==="finish"){if(currentStepValid())goToStep(STEPS.length);return}
+      if(action==="previous"){goToStep(Math.max(0,currentStep-1));return}if(action==="home"){goToStep(-1);return}
+      if(action==="restart"){restart();return}if(action==="download-csv"){downloadCsv();return}if(action==="download-activity"){downloadActivityCsv();return}if(action==="download-json"){downloadJson();return}
+      if(target.dataset.mdKind){const kind=target.dataset.mdKind,id=target.dataset.mdItem;mdSelect(kind,id);const answer=response.maxdiff[currentStep-2];logSelection("maxdiff","MD"+(currentStep-1),kind,id,answer[kind]||"",{best:answer.best,worst:answer.worst});return}if(target.dataset.conjoint){const label=target.dataset.conjoint,index=currentStep-6;selectConjoint(label);logSelection("conjoint","CJ"+(index+1),"choose",label,label,{choice:label});return}
+    });
+    restore();render();
+  </script>
+</body>
+</html>
